@@ -32,7 +32,7 @@ jobs:
           echo DATABASE_HOST=${{ secrets.DATABASE_HOST }} >> .env
           echo DATABASE_PORT=${{ secrets.DATABASE_PORT }} >> .env
           echo echo DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }} >> .env
-          echo DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} >> .env
+          echo DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}" >> .env
           echo DATABASE_NAME=${{ secrets.DATABASE_NAME }} >> .env
           echo JWT_SECRET=${{ secrets.JWT_SECRET }} >> .env
 
