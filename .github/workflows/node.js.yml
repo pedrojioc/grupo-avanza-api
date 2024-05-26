@@ -31,12 +31,12 @@ jobs:
           touch .env
           echo DATABASE_HOST=${{ secrets.DATABASE_HOST }} >> .env
           echo DATABASE_PORT=${{ secrets.DATABASE_PORT }} >> .env
-          echo echo DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }} >> .env
+          echo DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }} >> .env
           echo DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}" >> .env
           echo DATABASE_NAME=${{ secrets.DATABASE_NAME }} >> .env
           echo DATABASE_URL="mysql://${{ secrets.DATABASE_USERNAME }}:${{ secrets.DATABASE_PASSWORD }}@${{ secrets.DATABASE_HOST }}:3306/${{ secrets.DATABASE_NAME }}" >> .env
           echo JWT_SECRET=${{ secrets.JWT_SECRET }} >> .env
-          echo NODE_ENV=production
+          echo NODE_ENV=production >> .env
 
       - run: npm i
       - run: npm run build --if-present
