@@ -20,19 +20,19 @@ export class Installment {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Loan, { nullable: false })
+  @ManyToOne(() => Loan, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'loan_id' })
   loan: Loan
   @Column({ name: 'loan_id' })
   loanId: number
 
-  @ManyToOne(() => PaymentMethod, { nullable: false })
+  @ManyToOne(() => PaymentMethod, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'payment_method_id' })
   paymentMethod: PaymentMethod
   @Column({ name: 'payment_method_id' })
   paymentMethodId: number
 
-  @ManyToOne(() => InstallmentState, { nullable: false })
+  @ManyToOne(() => InstallmentState, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'installment_state_id' })
   installmentState: InstallmentState
   @Column({ name: 'installment_state_id' })

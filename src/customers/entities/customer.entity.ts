@@ -18,7 +18,7 @@ export class Customer {
   @Generated('uuid')
   uuid: string
 
-  @ManyToOne(() => FinancialActivity)
+  @ManyToOne(() => FinancialActivity, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'financial_activity_id' })
   financialActivity: FinancialActivity
 

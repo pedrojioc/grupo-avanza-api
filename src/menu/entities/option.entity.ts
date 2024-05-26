@@ -7,7 +7,7 @@ export class Option {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Menu, (menu) => menu.options)
+  @ManyToOne(() => Menu, (menu) => menu.options, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'menu_id' })
   menu: Menu
 

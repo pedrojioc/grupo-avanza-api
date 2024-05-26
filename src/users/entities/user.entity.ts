@@ -18,11 +18,11 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number
 
-  @OneToOne(() => Employee, (employee) => employee.user)
+  @OneToOne(() => Employee, (employee) => employee.user, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'employee_id' })
   employee: Employee
 
-  @ManyToOne(() => Role)
+  @ManyToOne(() => Role, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'role_id' })
   role: Role
 

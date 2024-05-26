@@ -17,7 +17,7 @@ export class Interest {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Loan, { nullable: false })
+  @ManyToOne(() => Loan, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'loan_id' })
   loan: Loan
 
@@ -39,7 +39,7 @@ export class Interest {
   @Column({ type: 'int' })
   days: number
 
-  @ManyToOne(() => InterestState, { nullable: false })
+  @ManyToOne(() => InterestState, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'interest_state_id' })
   state: InterestState
   @Column({ name: 'interest_state_id' })

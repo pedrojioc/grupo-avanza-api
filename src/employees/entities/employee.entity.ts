@@ -17,7 +17,7 @@ export class Employee {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Position)
+  @ManyToOne(() => Position, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'position_id' })
   position: Position
 
