@@ -34,4 +34,6 @@ jobs:
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      - name: 'Run migrations'
+        run: npm run mg:run
     #- run: npm test
