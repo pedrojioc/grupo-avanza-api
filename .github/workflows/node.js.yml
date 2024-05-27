@@ -43,4 +43,6 @@ jobs:
 
       - name: 'Run migrations'
         run: npm run mg:run:prod
+      - name: 'Restart App'
+        run: pm2 restart main --update-env
     #- run: npm test
