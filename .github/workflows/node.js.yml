@@ -40,7 +40,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+
       - uses: bahmutov/npm-install@v1
+        with:
+          install-command: npm install
         env:
           NODE_ENV: production
 
