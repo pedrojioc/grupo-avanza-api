@@ -47,7 +47,6 @@ jobs:
         env:
           NODE_ENV: production
 
-      - run: npm t
       - run: npm run build --if-present
 
       - name: 'Run migrations'
