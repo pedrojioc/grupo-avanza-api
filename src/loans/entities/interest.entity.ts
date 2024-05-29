@@ -45,6 +45,9 @@ export class Interest {
   @Column({ name: 'interest_state_id' })
   interestStateId: number
 
+  @Column({ name: 'last_interest_generated', type: 'date', nullable: true })
+  lastInterestGenerated: Date
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
