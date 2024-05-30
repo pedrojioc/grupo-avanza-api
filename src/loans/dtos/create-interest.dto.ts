@@ -21,4 +21,6 @@ export class CreateInterestDto {
 
   @IsPositive()
   interestStateId: number
+  @IsDate()
+  lastInterestGenerated: Date
 }

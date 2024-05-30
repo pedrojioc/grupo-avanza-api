@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
-import { addDay, addMonth, format, parse } from '@formkit/tempo'
+import { addDay, addMonth, format, isEqual, parse } from '@formkit/tempo'
 
 import { Interest } from '../entities/interest.entity'
 import { CreateInterestDto } from '../dtos/create-interest.dto'
@@ -49,7 +49,8 @@ export class InterestsService {
   async runDailyInterest() {
     const INTEREST_PENDING_STATE = 1
     const DATE_FORMAT = 'YYYY-MM-DD'
-    const today = format(new Date(), DATE_FORMAT)
+    const today = new Date()
+    const todayString = format(today, DATE_FORMAT)
 
     const loans = await this.loanService.getPendingLoans()
 
@@ -63,27 +64,29 @@ export class InterestsService {
           {
             loanId: loan.id,
             interestStateId: INTEREST_PENDING_STATE,
-            currentDate: today,
+            currentDate: todayString,
           },
         )
         .getOne()
 
       if (interest) {
+        if (isEqual(interest.lastInterestGenerated, todayString)) continue
+
         const amount = Number(interest.amount) + dailyInterest
-        console.log('AMOUNT:', amount)
         const days = interest.days + 1
-        await this.rawUpdate(interest.id, { amount, days })
+
+        await this.rawUpdate(interest.id, { amount, days, lastInterestGenerated: today })
       } else {
-        console.log('Loan ID', loan.id)
         const nextMonth = addMonth(addDay(today, -1), 1)
         const newInterest: CreateInterestDto = {
           amount: dailyInterest,
           capital: loan.debt,
-          startAt: parse(today, DATE_FORMAT),
+          startAt: today,
           deadline: nextMonth,
           days: 1,
           loanId: loan.id,
           interestStateId: 1,
+          lastInterestGenerated: today,
         }
         await this.rawCreate(newInterest)
       }
