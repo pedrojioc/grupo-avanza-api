@@ -27,7 +27,9 @@
     "mg:show": "npm run typeorm -- migration:show",
     "mg:drop": "npm run typeorm -- schema:drop",
     "job:interest": "ts-node ./src/loans/jobs/daily-interests.ts",
-    "job:interest:prod": "node ./dist/src/loans/jobs/daily-interests.js"
+    "job:interest:prod": "node ./dist/src/loans/jobs/daily-interests.js",
+    "job:pendingInterest": "ts-node ./src/loans/jobs/fill-current-interest.ts",
+    "job:pendingInterest:prod": "node ./dist/loans/jobs/fill-current-interest.js"
   },
   "dependencies": {
     "@formkit/tempo": "^0.1.1",

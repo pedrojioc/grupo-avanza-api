@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
-import { addDay, addMonth, format, isEqual, parse } from '@formkit/tempo'
+import { addDay, addMonth, diffDays, format, isEqual, parse } from '@formkit/tempo'
 
 import { Interest } from '../entities/interest.entity'
 import { CreateInterestDto } from '../dtos/create-interest.dto'
@@ -97,5 +97,56 @@ export class InterestsService {
       })
     }
     return true
+  }
+
+  async fillPendingInterest() {
+    const DATE_FORMAT = 'YYYY-MM-DD'
+    const today = new Date()
+    const todayString = format(today, DATE_FORMAT)
+
+    const loans = await this.loanService.getPendingLoans()
+    for (const loan of loans) {
+      const dailyInterest = this.getDailyInterest(loan.debt, loan.interestRate)
+      const paymentDay = Number(loan.paymentDay) < 10 ? `0${loan.paymentDay}` : loan.paymentDay
+      const interestFrom = `2024-05-${paymentDay}`
+      const interestTo = `2024-06-${paymentDay}`
+      const daysLeft = diffDays(todayString, interestFrom)
+      const pendingInterest = daysLeft >= 20 ? dailyInterest * 30 : dailyInterest * daysLeft
+      const newInterest: CreateInterestDto = {
+        amount: pendingInterest,
+        capital: loan.debt,
+        startAt: today,
+        deadline: parse(interestTo, DATE_FORMAT),
+        days: daysLeft,
+        loanId: loan.id,
+        interestStateId: 1,
+        lastInterestGenerated: today,
+      }
+      await this.rawCreate(newInterest)
+
+      let newCurrentInterest = 0
+
+      if (daysLeft > 30) {
+        const days = daysLeft - 30
+        newCurrentInterest = days * dailyInterest
+        const newInterest: CreateInterestDto = {
+          amount: newCurrentInterest,
+          capital: loan.debt,
+          startAt: addDay(interestTo),
+          deadline: parse(`2024-07-${paymentDay}`, DATE_FORMAT),
+          days: days,
+          loanId: loan.id,
+          interestStateId: 1,
+          lastInterestGenerated: today,
+        }
+        await this.rawCreate(newInterest)
+      }
+
+      // Update current interest on loans table
+      const currentInterest = Number(loan.currentInterest) + pendingInterest + newCurrentInterest
+      await this.loanService.rawUpdate(loan.id, {
+        currentInterest,
+      })
+    }
   }
 }
