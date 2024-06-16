@@ -1,0 +1,2 @@
+export const INTEREST_PENDING_STATE = 1
+export const INTEREST_PAID_STATE = 1

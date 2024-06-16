@@ -64,7 +64,7 @@ export class CreateLoanDto {
 
   @IsPositive()
   @IsNotEmpty()
-  readonly loanStateId: number
+  loanStateId: number
 }
 
 export class UpdateLoanDto extends PartialType(CreateLoanDto) {}

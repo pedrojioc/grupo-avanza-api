@@ -33,6 +33,8 @@ export class Loan {
   @ManyToOne(() => LoanState, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'loan_state_id' })
   loanState: LoanState
+  @Column({ name: 'loan_state_id' })
+  loanStateId: number
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   amount: number

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository } from 'typeorm'
+import { FindOptionsWhere, Repository } from 'typeorm'
 import { addDay, addMonth, diffDays, format, isEqual, parse } from '@formkit/tempo'
 
 import { Interest } from '../entities/interest.entity'
@@ -8,6 +8,9 @@ import { CreateInterestDto } from '../dtos/create-interest.dto'
 import { UpdateInterestDto } from '../dtos/update-interest.dto'
 import { FilterPaginator } from 'src/lib/filter-paginator'
 import { LoansService } from './loans.service'
+import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
+import { INTEREST_PENDING_STATE } from '../constants/interests'
+import { InterestState } from '../entities/interest-state.entity'
 
 @Injectable()
 export class InterestsService {
@@ -31,9 +34,16 @@ export class InterestsService {
       .execute()
   }
 
-  findAllByLoan(loanId: number) {
+  findAllByLoan(loanId: number, params: FilterPaginatorDto) {
+    const whereOptions: FindOptionsWhere<Interest> = {}
+
+    if (params.state) {
+      const interestState = { id: params.state } as InterestState
+      whereOptions.state = interestState
+    }
+
     const paginator = new FilterPaginator(this.repository, {
-      where: { loanId },
+      where: { loanId, ...whereOptions },
       relations: ['state'],
     })
     const result = paginator.paginate(1).execute()
@@ -47,7 +57,6 @@ export class InterestsService {
   }
 
   async runDailyInterest() {
-    const INTEREST_PENDING_STATE = 1
     const DATE_FORMAT = 'YYYY-MM-DD'
     const today = new Date()
     const todayString = format(today, DATE_FORMAT)
