@@ -46,6 +46,10 @@ export class CreateLoanDto {
   @IsOptional()
   readonly totalInterestPaid: number
 
+  @IsNumber()
+  @IsOptional()
+  commissionsPaid: number
+
   @IsDateString({ strict: false })
   @IsNotEmpty()
   readonly startAt: Date

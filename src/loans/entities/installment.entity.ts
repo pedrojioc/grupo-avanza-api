@@ -6,6 +6,7 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
@@ -14,6 +15,7 @@ import { Loan } from './loan.entity'
 import { PaymentMethod } from '../../payment-methods/entities/payment-method.entity'
 import { InstallmentState } from './installment-state.entity'
 import { Interest } from './interest.entity'
+import { Commission } from 'src/employees/entities/commission.entity'
 
 @Entity({ name: 'installments' })
 export class Installment {
@@ -61,11 +63,16 @@ export class Installment {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date
 
-  @ManyToMany(() => Interest, (interest) => interest.installments)
+  @ManyToMany(() => Interest, (interest) => interest.installments, {
+    cascade: ['insert', 'update', 'remove'],
+  })
   @JoinTable({
     name: 'installments_interests',
     joinColumn: { name: 'installment_id' },
     inverseJoinColumn: { name: 'interest_id' },
   })
   interests: Interest[]
+
+  @OneToOne(() => Commission, (commission) => commission.installment)
+  commission: Commission
 }

@@ -67,6 +67,9 @@ export class Loan {
   @Column({ name: 'total_interest_paid', type: 'decimal', precision: 15, scale: 2, default: 0 })
   totalInterestPaid: number
 
+  @Column({ name: 'commissions_paid', type: 'decimal', precision: 15, scale: 2, default: 0 })
+  commissionsPaid: number
+
   @Column({ name: 'start_at', type: 'datetime' })
   startAt: Date
 

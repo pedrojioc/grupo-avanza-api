@@ -47,7 +47,9 @@ export class UsersService {
     return `This action removes a #${id} user`
   }
 
-  findByUsername(username: string) {
-    return this.repository.findOne({ where: { username }, relations: ['role'] })
+  async findByUsername(username: string) {
+    const user = await this.repository.findOne({ where: { username }, relations: ['role'] })
+    if (!user) throw new NotFoundException(`User ${username} not found`)
+    return user
   }
 }

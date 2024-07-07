@@ -9,11 +9,11 @@ export class FilterPaginatorDto {
 
   @IsOptional()
   @IsString()
-  filter?: string
+  searchBy?: string
 
   @IsOptional()
   @IsString()
-  value?: string
+  searchValue?: string
 
   @IsPositive()
   @Type(() => Number)

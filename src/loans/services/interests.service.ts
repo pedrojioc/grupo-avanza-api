@@ -9,8 +9,8 @@ import { UpdateInterestDto } from '../dtos/update-interest.dto'
 import { FilterPaginator } from 'src/lib/filter-paginator'
 import { LoansService } from './loans.service'
 import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
-import { INTEREST_PENDING_STATE } from '../constants/interests'
 import { InterestState } from '../entities/interest-state.entity'
+import { INTEREST_STATE } from '../constants/interests'
 
 @Injectable()
 export class InterestsService {
@@ -72,7 +72,7 @@ export class InterestsService {
           'loan_id = :loanId AND interest_state_id = :interestStateId AND deadline >= :currentDate',
           {
             loanId: loan.id,
-            interestStateId: INTEREST_PENDING_STATE,
+            interestStateId: INTEREST_STATE.PENDING,
             currentDate: todayString,
           },
         )

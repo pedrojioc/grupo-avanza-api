@@ -23,15 +23,21 @@ export class FilterPaginator<T> {
     if (options.itemsPerPage) this.itemsPerPage = options.itemsPerPage
   }
 
-  filter(field: string, value: number | string) {
+  filter(whereOptions: FindOptionsWhere<T>) {
+    this.queryOptions.where = { ...whereOptions }
+
+    return this
+  }
+
+  search(field: string, value: number | string): { paginate: Function; execute: Function } {
     if (field && value) {
-      this.queryOptions = { where: { ...this.queryOptions.where, [field]: Like(`${value}%`) } }
+      this.queryOptions.where = { ...this.queryOptions.where, [field]: Like(`${value}%`) }
     }
 
     return this
   }
 
-  paginate(page: number) {
+  paginate(page: number): { execute: Function } {
     this.queryOptions.take = this.itemsPerPage
     this.queryOptions.skip = this.itemsPerPage * (page - 1)
     this.page = page

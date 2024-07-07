@@ -28,7 +28,10 @@ export class CustomersService {
       itemsPerPage: 10,
       relations: ['financialActivity'],
     })
-    const result = paginator.filter(params.filter, params.value).paginate(params.page).execute()
+    const result = paginator
+      .search(params.searchBy, params.searchValue)
+      .paginate(params.page)
+      .execute()
     return result
   }
 

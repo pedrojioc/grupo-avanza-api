@@ -1,19 +1,5 @@
+import { Type } from 'class-transformer'
 import { IsOptional, IsPositive, IsString } from 'class-validator'
+import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
 
-export class FilterLoansDto {
-  @IsOptional()
-  @IsString()
-  filter?: string
-
-  @IsOptional()
-  @IsString()
-  value?: string
-
-  @IsOptional()
-  @IsPositive()
-  page?: number = 1
-
-  @IsOptional()
-  @IsPositive()
-  showing?: number = 10
-}
+export class FilterLoansDto extends FilterPaginatorDto {}

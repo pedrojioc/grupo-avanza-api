@@ -11,6 +11,7 @@ import {
 
 import { User } from '../../users/entities/user.entity'
 import { Position } from './position.entity'
+import { EmployeeBalance } from './employee-balance.entity'
 
 @Entity('employees')
 export class Employee {
@@ -35,4 +36,7 @@ export class Employee {
 
   @OneToOne(() => User, (user) => user.employee, { nullable: true })
   user: User
+
+  @OneToOne(() => EmployeeBalance, (balance) => balance.employee)
+  employeeBalance: EmployeeBalance
 }
