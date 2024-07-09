@@ -24,7 +24,7 @@ export class CreateLoanDto {
 
   @IsNumber()
   @IsOptional()
-  readonly debt: number
+  debt: number
 
   @IsNumber()
   @IsNotEmpty()

@@ -44,7 +44,12 @@ export class InstallmentsService {
     const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
     const totalInterestPaid = Number(loan.totalInterestPaid) + installment.interest
     const installmentsPaid = Number(loan.installmentsPaid) + 1
-    return { currentInterest, totalInterestPaid, installmentsPaid }
+    const data: UpdateLoanDto = { currentInterest, totalInterestPaid, installmentsPaid }
+
+    if (installment.capital > 0) {
+      data.debt = Number(loan.debt) - installment.capital
+    }
+    return data
   }
 
   async create(loanOrId: Loan | number, installmentData: CreateInstallmentDto) {
@@ -84,14 +89,9 @@ export class InstallmentsService {
       )
 
       // ** UPDATE LOAN VALUES
-      const { currentInterest, totalInterestPaid, installmentsPaid } = this.getNewLoanValues(
-        loan,
-        installmentData,
-      )
+      const loanValues = this.getNewLoanValues(loan, installmentData)
       await queryRunner.manager.update(Loan, loan.id, {
-        currentInterest,
-        totalInterestPaid,
-        installmentsPaid,
+        ...loanValues,
       })
 
       if (loan.employee.id !== 1) {
