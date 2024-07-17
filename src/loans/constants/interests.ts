@@ -1,4 +1,6 @@
 export const INTEREST_STATE = {
-  PENDING: 1,
+  IN_PROGRESS: 1,
   PAID: 2,
+  AWAITING_PAYMENT: 3,
+  OVERDUE: 4,
 }

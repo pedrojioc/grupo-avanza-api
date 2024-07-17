@@ -6,6 +6,7 @@ import { CreateInstallmentDto } from '../dtos/create-installment.dto'
 import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
 import { PayOffDto } from '../dtos/pay-off.dto'
 import { InstallmentsService } from '../services/installments.service'
+import { FilterLoansDto } from '../dtos/filter-loans.dto'
 
 @Controller('loans')
 export class LoansController {
@@ -21,7 +22,7 @@ export class LoansController {
   }
 
   @Get()
-  findAll(@Query() params: FilterPaginatorDto) {
+  findAll(@Query() params: FilterLoansDto) {
     return this.loansService.findAll(params)
   }
 

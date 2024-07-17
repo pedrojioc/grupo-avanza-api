@@ -28,6 +28,8 @@
     "mg:drop": "npm run typeorm -- schema:drop",
     "job:interest": "ts-node ./src/loans/jobs/daily-interests.ts",
     "job:interest:prod": "node ./dist/src/loans/jobs/daily-interests.js",
+    "job:overduePayments": "ts-node ./src/loans/jobs/check-overdue-payments.ts",
+    "job:overduePayments:prod": "node ./dist/src/loans/jobs/check-overdue-payments.js",
     "job:pendingInterest": "ts-node ./src/loans/jobs/fill-current-interest.ts",
     "job:pendingInterest:prod": "node ./dist/src/loans/jobs/fill-current-interest.js"
   },

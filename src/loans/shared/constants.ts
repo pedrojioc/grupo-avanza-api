@@ -4,3 +4,7 @@ export const LOAN_STATES = {
   FINALIZED: 3,
   REJECTED: 4,
 }
+
+type Keys = keyof typeof LOAN_STATES
+
+export type LoanStateValueTypes = (typeof LOAN_STATES)[Keys]

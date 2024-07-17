@@ -23,7 +23,7 @@ export class InterestRepository extends Repository<Interest> {
       .select('SUM(interest.amount)', 'total')
       .where('interest.id IN(:...ids)', { ids: interestIds })
       .andWhere('interest.interest_state_id = :pendingId', {
-        pendingId: INTEREST_STATE.PENDING,
+        pendingId: INTEREST_STATE.IN_PROGRESS,
       })
       .getRawOne()
 

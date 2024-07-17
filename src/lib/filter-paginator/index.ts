@@ -1,4 +1,4 @@
-import { FindManyOptions, FindOptionsWhere, Like, Repository } from 'typeorm'
+import { FindManyOptions, FindOptionsWhere, Like, QueryBuilder, Repository } from 'typeorm'
 
 interface IOptions {
   where?: object
@@ -54,4 +54,14 @@ export class FilterPaginator<T> {
       itemsPerPage: this.itemsPerPage,
     }
   }
+}
+
+export class BuilderPaginator<T> {
+  private builder: QueryBuilder<T>
+
+  constructor(name: string, repository: Repository<T>) {
+    this.builder = repository.createQueryBuilder(name)
+  }
+
+  filter(whereOptions: Object) {}
 }

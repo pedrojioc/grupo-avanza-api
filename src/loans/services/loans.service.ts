@@ -6,12 +6,10 @@ import { Loan } from '../entities/loan.entity'
 import { CreateLoanDto, UpdateLoanDto } from '../dtos/loans.dto'
 import { CustomersService } from 'src/customers/services/customers.service'
 import { EmployeesService } from 'src/employees/services/employees.service'
-import { FilterPaginator } from 'src/lib/filter-paginator'
 import { CreateInstallmentDto } from '../dtos/create-installment.dto'
 import { PaymentPeriod } from '../entities/payment-period.entity'
-import { LOAN_STATES } from '../shared/constants'
+import { LOAN_STATES, LoanStateValueTypes } from '../shared/constants'
 import { LoanState } from '../entities/loan-state.entity'
-import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
 import { PayOffDto } from '../dtos/pay-off.dto'
 import { Interest } from '../entities/interest.entity'
 
@@ -63,16 +61,46 @@ export class LoansService {
   }
 
   async findAll(params: FilterLoansDto) {
+    /*
     const paginator = new FilterPaginator(this.repository, {
       itemsPerPage: 10,
       relations: ['customer', 'employee'],
     })
+    */
+    /*
     const result = paginator
       .filter({ loanStateId: params.state })
       .search(params.searchBy, params.searchValue)
       .paginate(params.page)
       .execute()
-    return result
+    */
+    const loans = this.repository
+      .createQueryBuilder('loans')
+      .leftJoinAndSelect('loans.customer', 'customer')
+      .leftJoinAndSelect('loans.employee', 'employee')
+    if (params.interestState) {
+      loans
+        .innerJoin('interests', 'i', 'loans.id = i.loan_id')
+        .where('i.interest_state_id = :interestStateId', {
+          interestStateId: params.interestState,
+        })
+    }
+    if (params.state) {
+      if (params.interestState) {
+        loans.andWhere('loan_state_id = :loanState', { loanState: params.state })
+      } else {
+        loans.where('loan_state_id = :loanState', { loanState: params.state })
+      }
+    }
+    loans.take(params.itemsPerPage).skip(params.itemsPerPage * (params.page - 1))
+
+    const [data, counter] = await loans.getManyAndCount()
+    return {
+      data,
+      total: counter,
+      currentPage: params.page,
+      itemsPerPage: params.itemsPerPage,
+    }
   }
 
   findOne(id: number, relations?: string[]) {
@@ -93,7 +121,7 @@ export class LoansService {
       .execute()
   }
 
-  getPendingLoans() {
+  getLoansByState(loanStateId: LoanStateValueTypes) {
     return this.repository
       .createQueryBuilder('loans')
       .where('loan_state_id = :id', { id: LOAN_STATES.IN_PROGRESS })
@@ -107,7 +135,7 @@ export class LoansService {
       throw new BadRequestException('El monto del interest debe ser mayor')
     }
 
-    const pendingState = { id: INTEREST_STATE.PENDING } as InterestState
+    const pendingState = { id: INTEREST_STATE.IN_PROGRESS } as InterestState
     const interests = await this.interestRepo.find({
       where: { loanId: loan.id, state: pendingState },
     })

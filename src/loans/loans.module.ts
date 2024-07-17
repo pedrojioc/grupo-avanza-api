@@ -21,6 +21,7 @@ import { PaymentMethod } from '../payment-methods/entities/payment-method.entity
 import { InstallmentState } from './entities/installment-state.entity'
 import { InstallmentRepository } from './repositories/installment.repository'
 import { InterestRepository } from './repositories/interest.repository'
+import { JobInterestsService } from './services/jobs/job-interests.service'
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { InterestRepository } from './repositories/interest.repository'
     InstallmentsService,
     InstallmentRepository,
     InterestRepository,
+    JobInterestsService,
   ],
 })
 export class LoansModule {}
