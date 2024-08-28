@@ -148,7 +148,7 @@ export class LoansService {
 
     let totalInterestToPay = await this.interestRepository.getInterestsAmount(interestIds)
     console.log(totalInterestToPay)
-    const totalDebt = totalInterestToPay + Number(loan.debt)
+    const totalDebt = Number(totalInterestToPay) + Number(loan.debt)
     if (payOffDto.amount) {
       if (payOffDto.amount <= totalDebt) throw new BadRequestException('Monto insuficiente')
       totalInterestToPay = payOffDto.amount - Number(loan.debt)
