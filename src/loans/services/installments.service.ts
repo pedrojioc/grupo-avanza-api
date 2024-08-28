@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { Inject, Injectable, InternalServerErrorException, forwardRef } from '@nestjs/common'
 
 import { CreateInstallmentDto } from '../dtos/create-installment.dto'
 import { INSTALLMENT_STATES } from '../constants/installments'
@@ -13,6 +13,7 @@ import { Interest } from '../entities/interest.entity'
 import { INTEREST_STATE } from '../constants/interests'
 import { Commission } from 'src/employees/entities/commission.entity'
 import { EmployeeBalance } from 'src/employees/entities/employee-balance.entity'
+import { LOAN_STATES } from '../shared/constants'
 
 @Injectable()
 export class InstallmentsService {
@@ -20,7 +21,7 @@ export class InstallmentsService {
     private dataSource: DataSource,
     private repository: InstallmentRepository,
     private interestRepository: InterestRepository,
-    private readonly loanService: LoansService,
+    @Inject(forwardRef(() => LoansService)) private loanService: LoansService,
   ) {}
 
   private async updateLoan(
@@ -39,16 +40,17 @@ export class InstallmentsService {
     await this.loanService.rawUpdate(loanId, loanData)
   }
 
-  getNewLoanValues(loan: Loan, installment: CreateInstallmentDto) {
+  private getNewLoanValues(loan: Loan, installment: CreateInstallmentDto) {
     const newCurrentInterest = Number(loan.currentInterest) - installment.interest
     const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
-    const totalInterestPaid = Number(loan.totalInterestPaid) + installment.interest
+    const totalInterestPaid = Number(loan.totalInterestPaid) + Number(installment.interest)
     const installmentsPaid = Number(loan.installmentsPaid) + 1
     const data: UpdateLoanDto = { currentInterest, totalInterestPaid, installmentsPaid }
 
     if (installment.capital > 0) {
       data.debt = Number(loan.debt) - installment.capital
     }
+    if (data.debt === 0) data.loanStateId = LOAN_STATES.FINALIZED
     return data
   }
 
@@ -58,11 +60,6 @@ export class InstallmentsService {
     installmentData.installmentStateId = INSTALLMENT_STATES.PAID
 
     const { interestIds } = installmentData
-
-    const interestAmount = await this.interestRepository.getInterestsAmount(interestIds)
-
-    if (Number(interestAmount) > installmentData.interest)
-      throw new BadRequestException('El monto del interest no puede ser menor al del sistema')
 
     const queryRunner = this.dataSource.createQueryRunner()
 
@@ -108,7 +105,7 @@ export class InstallmentsService {
         const employeeBalance = await queryRunner.manager.findOneBy(EmployeeBalance, {
           employeeId: employeeId,
         })
-        console.log(employeeBalance, loan.employee)
+
         await queryRunner.manager.update(
           EmployeeBalance,
           { employeeId: employeeId },
@@ -122,7 +119,7 @@ export class InstallmentsService {
     } catch (error) {
       console.log(error)
       await queryRunner.rollbackTransaction()
-      return false
+      throw new InternalServerErrorException()
     } finally {
       await queryRunner.release()
     }

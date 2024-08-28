@@ -13,6 +13,7 @@ import { InterestState } from 'src/loans/entities/interest-state.entity'
 
 @Injectable()
 export class JobInterestsService {
+  private DAYS_OF_INTEREST = 30
   constructor(
     @InjectRepository(Interest) private repository: Repository<Interest>,
     private loanService: LoansService,
@@ -50,7 +51,9 @@ export class JobInterestsService {
       if (interest) {
         if (isEqual(interest.lastInterestGenerated, todayString)) continue
 
-        const amount = Number(interest.amount) + dailyInterest
+        let amount = Number(interest.amount)
+        if (interest.days <= this.DAYS_OF_INTEREST) amount + dailyInterest
+
         const days = interest.days + 1
 
         const interestValues: UpdateInterestDto = {
@@ -58,8 +61,10 @@ export class JobInterestsService {
           days,
           lastInterestGenerated: today,
         }
-        if (interest.deadline === today)
+
+        if (format(interest.deadline, DATE_FORMAT) === todayString) {
           interestValues.interestStateId = INTEREST_STATE.AWAITING_PAYMENT
+        }
         await this.interestService.rawUpdate(interest.id, interestValues)
       } else {
         const nextMonth = addMonth(addDay(today, -1), 1)

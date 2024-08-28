@@ -27,6 +27,11 @@ export class CreateInstallmentDto {
 
   @IsNumber()
   @Type(() => Number)
+  @IsOptional()
+  customInterest?: number
+
+  @IsNumber()
+  @Type(() => Number)
   total: number
 
   @IsArray()

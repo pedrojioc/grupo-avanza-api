@@ -1,6 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  forwardRef,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Not, Repository } from 'typeorm'
 
 import { Loan } from '../entities/loan.entity'
 import { CreateLoanDto, UpdateLoanDto } from '../dtos/loans.dto'
@@ -11,20 +17,21 @@ import { PaymentPeriod } from '../entities/payment-period.entity'
 import { LOAN_STATES, LoanStateValueTypes } from '../shared/constants'
 import { LoanState } from '../entities/loan-state.entity'
 import { PayOffDto } from '../dtos/pay-off.dto'
-import { Interest } from '../entities/interest.entity'
 
-import { InterestState } from '../entities/interest-state.entity'
 import { INSTALLMENT_STATES } from '../constants/installments'
 import { INTEREST_STATE } from '../constants/interests'
 import { FilterLoansDto } from '../dtos/filter-loans.dto'
+import { InstallmentsService } from './installments.service'
+import { InterestRepository } from '../repositories/interest.repository'
 
 @Injectable()
 export class LoansService {
   constructor(
     @InjectRepository(Loan) private repository: Repository<Loan>,
-    @InjectRepository(Interest) private interestRepo: Repository<Interest>,
+    private interestRepository: InterestRepository,
     private customerService: CustomersService,
     private employeeService: EmployeesService,
+    @Inject(forwardRef(() => InstallmentsService)) private installmentService: InstallmentsService,
   ) {}
 
   async findOrReturnLoan(loanOrId: Loan | number): Promise<Loan> {
@@ -78,20 +85,20 @@ export class LoansService {
       .createQueryBuilder('loans')
       .leftJoinAndSelect('loans.customer', 'customer')
       .leftJoinAndSelect('loans.employee', 'employee')
+
     if (params.interestState) {
       loans
         .innerJoin('interests', 'i', 'loans.id = i.loan_id')
         .where('i.interest_state_id = :interestStateId', {
           interestStateId: params.interestState,
         })
+        .andWhere('loan_state_id = :loanState', { loanState: params.state })
+    } else {
+      loans.where('loan_state_id = :loanState', { loanState: params.state })
     }
-    if (params.state) {
-      if (params.interestState) {
-        loans.andWhere('loan_state_id = :loanState', { loanState: params.state })
-      } else {
-        loans.where('loan_state_id = :loanState', { loanState: params.state })
-      }
-    }
+
+    if (params.client) loans.andWhere('customer.name LIKE :client', { client: `${params.client}%` })
+
     loans.take(params.itemsPerPage).skip(params.itemsPerPage * (params.page - 1))
 
     const [data, counter] = await loans.getManyAndCount()
@@ -129,26 +136,24 @@ export class LoansService {
   }
 
   async payOff(loanId: number, payOffDto: PayOffDto) {
-    const loan = await this.findOne(loanId)
-    let totalInterestToPay = Number(loan.currentInterest)
-    if (payOffDto.amount && payOffDto.amount <= loan.currentInterest) {
-      throw new BadRequestException('El monto del interest debe ser mayor')
-    }
+    const loan = await this.findOne(loanId, ['employee'])
 
-    const pendingState = { id: INTEREST_STATE.IN_PROGRESS } as InterestState
-    const interests = await this.interestRepo.find({
-      where: { loanId: loan.id, state: pendingState },
+    const interests = await this.interestRepository.findBy({
+      loanId: loan.id,
+      state: Not(INTEREST_STATE.PAID),
     })
     if (interests.length === 0) throw new NotFoundException('Intereses no encontrados')
 
-    if (payOffDto.amount) {
-      totalInterestToPay = payOffDto.amount
-      const additionalInterest = payOffDto.amount - Number(loan.currentInterest)
-      const interest = interests[interests.length - 1]
-      const newAmount = Number(interest.amount) + additionalInterest
-      await this.interestRepo.update({ id: interest.id }, { amount: newAmount })
-    }
+    const interestIds = interests.map((i) => i.id)
 
+    let totalInterestToPay = await this.interestRepository.getInterestsAmount(interestIds)
+    console.log(totalInterestToPay)
+    const totalDebt = totalInterestToPay + Number(loan.debt)
+    if (payOffDto.amount) {
+      if (payOffDto.amount <= totalDebt) throw new BadRequestException('Monto insuficiente')
+      totalInterestToPay = payOffDto.amount - Number(loan.debt)
+    }
+    console.log(totalInterestToPay)
     const installmentData: CreateInstallmentDto = {
       loanId,
       installmentStateId: INSTALLMENT_STATES.PAID,
@@ -156,11 +161,11 @@ export class LoansService {
       debt: loan.debt,
       capital: loan.debt,
       interest: totalInterestToPay,
-      total: Number(loan.debt) + totalInterestToPay,
-      interestIds: interests.map((i) => i.id),
+      total: totalDebt,
+      interestIds,
     }
-    // await this.createInstallment(loan, installmentData)
+    const rs = await this.installmentService.create(loan, installmentData)
 
-    return true
+    return rs
   }
 }

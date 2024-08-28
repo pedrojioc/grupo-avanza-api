@@ -22,8 +22,8 @@ export class InterestRepository extends Repository<Interest> {
     const { total } = await this.createQueryBuilder('interest')
       .select('SUM(interest.amount)', 'total')
       .where('interest.id IN(:...ids)', { ids: interestIds })
-      .andWhere('interest.interest_state_id = :pendingId', {
-        pendingId: INTEREST_STATE.IN_PROGRESS,
+      .andWhere('interest.interest_state_id <> :paidId', {
+        paidId: INTEREST_STATE.PAID,
       })
       .getRawOne()
 

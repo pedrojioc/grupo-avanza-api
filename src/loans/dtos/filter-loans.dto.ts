@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer'
-import { IsNumber, IsOptional } from 'class-validator'
+import { IsNumber, IsOptional, IsString } from 'class-validator'
 import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
 
 export class FilterLoansDto extends FilterPaginatorDto {
@@ -7,4 +7,8 @@ export class FilterLoansDto extends FilterPaginatorDto {
   @Type(() => Number)
   @IsOptional()
   interestState?: Number
+
+  @IsString()
+  @IsOptional()
+  client?: string
 }
