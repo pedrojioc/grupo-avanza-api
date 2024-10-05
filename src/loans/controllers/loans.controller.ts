@@ -5,15 +5,16 @@ import { InterestsService } from 'src/loans/services/interests.service'
 import { CreateInstallmentDto } from '../dtos/create-installment.dto'
 import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
 import { PayOffDto } from '../dtos/pay-off.dto'
-import { InstallmentsService } from '../services/installments.service'
 import { FilterLoansDto } from '../dtos/filter-loans.dto'
+import { PaymentsService } from '../modules/payments/payments.service'
+import { AddPaymentDto } from '../modules/payments/dtos/add-payment.dto'
 
 @Controller('loans')
 export class LoansController {
   constructor(
     private loansService: LoansService,
     private interestService: InterestsService,
-    private installmentService: InstallmentsService,
+    private paymentService: PaymentsService,
   ) {}
 
   @Post()
@@ -37,12 +38,12 @@ export class LoansController {
   }
 
   @Post(':id/installments')
-  createInstallment(@Param('id', ParseIntPipe) id: number, @Body() data: CreateInstallmentDto) {
-    return this.installmentService.create(id, data)
+  createInstallment(@Param('id', ParseIntPipe) id: number, @Body() data: AddPaymentDto) {
+    return this.paymentService.addPayment(data)
   }
 
   @Post(':id/pay-off')
-  payOff(@Param('id') id: number, @Body() data: PayOffDto) {
+  payOff(@Param('id') id: number, @Body() data: AddPaymentDto) {
     return this.loansService.payOff(id, data)
   }
 }

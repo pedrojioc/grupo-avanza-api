@@ -14,7 +14,7 @@ import { AuthModule } from './auth/auth.module'
 import { MenuModule } from './menu/menu.module'
 import config from './config'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
-import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
+import { PaymentMethodsModule } from './payment-methods/payment-methods.module'
 
 @Module({
   imports: [

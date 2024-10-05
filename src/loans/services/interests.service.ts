@@ -17,15 +17,6 @@ export class InterestsService {
     private loanService: LoansService,
   ) {}
 
-  async rawCreate(interest: CreateInterestDto) {
-    return await this.repository
-      .createQueryBuilder()
-      .insert()
-      .into(Interest)
-      .values(interest)
-      .execute()
-  }
-
   findAllByLoan(loanId: number, params: FilterPaginatorDto) {
     const whereOptions: FindOptionsWhere<Interest> = {}
 
@@ -43,8 +34,4 @@ export class InterestsService {
   }
 
   async update(id: number, data: UpdateInterestDto) {}
-
-  async rawUpdate(id: number, data: UpdateInterestDto) {
-    await this.repository.createQueryBuilder().update(Interest).set(data).where({ id }).execute()
-  }
 }

@@ -13,4 +13,5 @@ export default registerAs('config', () => ({
     type: 'postgresql',
   },
   jwtSecret: process.env.JWT_SECRET,
+  KEY: 'asd',
 }))

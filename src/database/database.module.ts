@@ -9,7 +9,7 @@ import config from 'src/config'
       inject: [config.KEY],
       useFactory: (configServices: ConfigType<typeof config>) => {
         const { host, port, username, password, database } = configServices.mysql
-        console.log(database, host)
+
         return {
           type: 'mysql',
           host,

@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer'
 import { IsArray, IsNumber, IsOptional, IsPositive } from 'class-validator'
 
-export class CreateInstallmentDto {
+export class AddPaymentDto {
   @IsPositive()
   loanId: number
 
@@ -13,27 +13,16 @@ export class CreateInstallmentDto {
   installmentStateId: number
 
   @IsNumber()
-  @Type(() => Number)
   @IsOptional()
-  debt?: number
-
-  @IsNumber()
   @Type(() => Number)
-  capital: number
-
-  @IsNumber()
-  @Type(() => Number)
-  interest: number
+  capital: number // ? Monto a pagar a capital
 
   @IsNumber()
   @Type(() => Number)
   @IsOptional()
-  customInterest?: number
-
-  @IsNumber()
-  @Type(() => Number)
-  total: number
+  customInterest?: number // ? Monto a pagar por intereses, si es un monto diferente al del sistema
 
   @IsArray()
+  @IsOptional()
   readonly interestIds: number[]
 }

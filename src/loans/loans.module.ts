@@ -15,13 +15,20 @@ import { LoanStatesController } from './controllers/loan-states.controller'
 import { InterestsService } from './services/interests.service'
 import { Interest } from './entities/interest.entity'
 import { InterestState } from './entities/interest-state.entity'
-import { InstallmentsService } from './services/installments.service'
+
 import { Installment } from './entities/installment.entity'
 import { PaymentMethod } from '../payment-methods/entities/payment-method.entity'
 import { InstallmentState } from './entities/installment-state.entity'
 import { InstallmentRepository } from './repositories/installment.repository'
 import { InterestRepository } from './repositories/interest.repository'
 import { JobInterestsService } from './services/jobs/job-interests.service'
+import { InterestsModule } from './modules/interests/interests.module'
+import { LoanFactoryService } from './services/loan-factory.service'
+import { PaymentsModule } from './modules/payments/payments.module'
+// import { LoanManagementService } from './services/loan-management.service'
+import { InstallmentsModule } from './modules/installments/installments.module'
+import { InstallmentsService } from './modules/installments/installments.service'
+import { LoansManagementModule } from './modules/loans-management/loans-management.module'
 
 @Module({
   imports: [
@@ -37,6 +44,10 @@ import { JobInterestsService } from './services/jobs/job-interests.service'
     ]),
     CustomersModule,
     EmployeesModule,
+    InterestsModule,
+    PaymentsModule,
+    InstallmentsModule,
+    LoansManagementModule,
   ],
   controllers: [LoansController, PaymentPeriodsController, LoanStatesController],
   providers: [
@@ -48,6 +59,7 @@ import { JobInterestsService } from './services/jobs/job-interests.service'
     InstallmentRepository,
     InterestRepository,
     JobInterestsService,
+    LoanFactoryService,
   ],
 })
 export class LoansModule {}

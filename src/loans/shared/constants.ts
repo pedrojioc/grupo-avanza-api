@@ -5,6 +5,12 @@ export const LOAN_STATES = {
   REJECTED: 4,
 }
 
+export const PAYMENT_PERIODS = {
+  WEEKLY: 1,
+  FORTNIGHTLY: 2,
+  MONTHLY: 3,
+}
+
 type Keys = keyof typeof LOAN_STATES
 
 export type LoanStateValueTypes = (typeof LOAN_STATES)[Keys]

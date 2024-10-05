@@ -24,7 +24,7 @@ export class CreateLoanDto {
 
   @IsNumber()
   @IsOptional()
-  debt: number
+  debt?: number
 
   @IsNumber()
   @IsNotEmpty()
@@ -32,23 +32,23 @@ export class CreateLoanDto {
 
   @IsNumber()
   @IsOptional()
-  readonly installmentsPaid: number
+  readonly installmentsPaid?: number
 
   @IsNumber()
   @IsOptional()
-  readonly daysLate: number
+  readonly daysLate?: number
 
   @IsNumber()
   @IsOptional()
-  readonly currentInterest: number
+  readonly currentInterest?: number
 
   @IsNumber()
   @IsOptional()
-  readonly totalInterestPaid: number
+  readonly totalInterestPaid?: number
 
   @IsNumber()
   @IsOptional()
-  commissionsPaid: number
+  commissionsPaid?: number
 
   @IsDateString({ strict: false })
   @IsNotEmpty()
@@ -60,11 +60,11 @@ export class CreateLoanDto {
 
   @IsPositive()
   @IsOptional()
-  paymentDay: number
+  paymentDay?: number
 
   @IsDateString()
   @IsOptional()
-  readonly lastInterestPayment: Date
+  readonly lastInterestPayment?: Date
 
   @IsPositive()
   @IsNotEmpty()
