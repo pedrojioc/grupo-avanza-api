@@ -80,9 +80,11 @@ export class PaymentsService {
   ) {
     const interestAmount = await this.interestService.getInterestsAmount(interestIds) // !! Verificar si se deja aquí
 
-    if (addPaymentDto.customInterest && addPaymentDto.customInterest <= interestAmount) {
+    if (addPaymentDto.customInterest && addPaymentDto.customInterest < interestAmount) {
       throw new BadRequestException('Intereses insuficiente')
     }
+
+    // if (!addPaymentDto.capital) throw new BadRequestException('Capital field is required')
 
     const interestToPay = addPaymentDto.customInterest
       ? addPaymentDto.customInterest
@@ -99,7 +101,7 @@ export class PaymentsService {
       total: total,
       interestIds,
     }
-
+    console.log('Line 102', installmentData)
     return installmentData
   }
 }

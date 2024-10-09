@@ -13,7 +13,6 @@ export class AddPaymentDto {
   installmentStateId: number
 
   @IsNumber()
-  @IsOptional()
   @Type(() => Number)
   capital: number // ? Monto a pagar a capital
 
