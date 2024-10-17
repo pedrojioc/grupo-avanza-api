@@ -1,15 +1,34 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Not, Repository } from 'typeorm'
+import { FindOptionsWhere, Not, Repository } from 'typeorm'
 
 import { Interest } from 'src/loans/entities/interest.entity'
 import { INTEREST_STATE } from 'src/loans/constants/interests'
 import { UpdateInterestDto } from 'src/loans/dtos/update-interest.dto'
 import { CreateInterestDto } from 'src/loans/dtos/create-interest.dto'
+import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
+import { InterestState } from 'src/loans/entities/interest-state.entity'
+import { FilterPaginator } from 'src/lib/filter-paginator'
 
 @Injectable()
 export class InterestsService {
   constructor(@InjectRepository(Interest) private repository: Repository<Interest>) {}
+
+  findAllByLoan(loanId: number, params: FilterPaginatorDto) {
+    const whereOptions: FindOptionsWhere<Interest> = {}
+
+    if (params.state) {
+      const interestState = { id: params.state } as InterestState
+      whereOptions.state = interestState
+    }
+
+    const paginator = new FilterPaginator(this.repository, {
+      where: { loanId, ...whereOptions },
+      relations: ['state'],
+    })
+    const result = paginator.paginate(1).execute()
+    return result
+  }
 
   async findUnpaidInterests(loanId: number) {
     const interests = await this.repository.findBy({
@@ -33,20 +52,6 @@ export class InterestsService {
     return total
   }
 
-  async rawCreate(interest: CreateInterestDto) {
-    return await this.repository.insert(interest)
-    // return await this.repository
-    //   .createQueryBuilder()
-    //   .insert()
-    //   .into(Interest)
-    //   .values(interest)
-    //   .execute()
-  }
-
-  async rawUpdate(id: number, data: UpdateInterestDto) {
-    await this.repository.update(id, data)
-  }
-
   async getCurrentInterest(loanId: number, date: string) {
     const interest = await this.repository
       .createQueryBuilder('interest')
@@ -61,5 +66,20 @@ export class InterestsService {
       .getOne()
 
     return interest
+  }
+
+  //? W
+  async rawCreate(interest: CreateInterestDto) {
+    return await this.repository.insert(interest)
+    // return await this.repository
+    //   .createQueryBuilder()
+    //   .insert()
+    //   .into(Interest)
+    //   .values(interest)
+    //   .execute()
+  }
+
+  async rawUpdate(id: number, data: UpdateInterestDto) {
+    await this.repository.update(id, data)
   }
 }

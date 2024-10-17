@@ -12,7 +12,6 @@ import { PaymentPeriodsService } from './services/payment-periods.service'
 import { PaymentPeriodsController } from './controllers/payment-periods.controller'
 import { LoanStatesService } from './services/loan-states.service'
 import { LoanStatesController } from './controllers/loan-states.controller'
-import { InterestsService } from './services/interests.service'
 import { Interest } from './entities/interest.entity'
 import { InterestState } from './entities/interest-state.entity'
 
@@ -29,6 +28,7 @@ import { PaymentsModule } from './modules/payments/payments.module'
 import { InstallmentsModule } from './modules/installments/installments.module'
 import { InstallmentsService } from './modules/installments/installments.service'
 import { LoansManagementModule } from './modules/loans-management/loans-management.module'
+import { LoanReportsModule } from './modules/loan-reports/loan-reports.module'
 
 @Module({
   imports: [
@@ -48,13 +48,13 @@ import { LoansManagementModule } from './modules/loans-management/loans-manageme
     PaymentsModule,
     InstallmentsModule,
     LoansManagementModule,
+    LoanReportsModule,
   ],
   controllers: [LoansController, PaymentPeriodsController, LoanStatesController],
   providers: [
     LoansService,
     PaymentPeriodsService,
     LoanStatesService,
-    InterestsService,
     InstallmentsService,
     InstallmentRepository,
     InterestRepository,

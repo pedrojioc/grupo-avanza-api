@@ -8,6 +8,7 @@ import { NotFoundException } from '@nestjs/common'
 import { Loan } from 'src/loans/entities/loan.entity'
 import { LoanManagementService } from '../loans-management/loans-management.service'
 import { AddPaymentDto } from './dtos/add-payment.dto'
+import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 
 describe('PaymentsService', () => {
   let paymentService: PaymentsService
@@ -44,10 +45,16 @@ describe('PaymentsService', () => {
       jest.spyOn(loanManagementService, 'findOne').mockResolvedValueOnce({ id: 1 } as Loan)
       jest.spyOn(interestService, 'findUnpaidInterests').mockResolvedValueOnce([])
 
-      const payOffDto: AddPaymentDto = {}
+      const paymentDto: AddPaymentDto = {
+        loanId: 3,
+        paymentMethodId: 3,
+        installmentStateId: INSTALLMENT_STATES.PAID,
+        capital: 0,
+        interestIds: [],
+      }
 
       // Act & Assert
-      await expect(paymentService.payOff(1, payOffDto)).rejects.toThrow(NotFoundException)
+      await expect(paymentService.payOff(1, paymentDto)).rejects.toThrow(NotFoundException)
     })
   })
 })
