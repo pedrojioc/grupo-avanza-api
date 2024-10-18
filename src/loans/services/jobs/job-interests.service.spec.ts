@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { JobInterestsService } from './job-interests.service'
 import { getRepositoryToken } from '@nestjs/typeorm'
-import { Interest } from 'src/loans/entities/interest.entity'
 import { Repository } from 'typeorm'
+import { date as tdate } from '@formkit/tempo'
+
+import { JobInterestsService } from './job-interests.service'
+import { Interest } from 'src/loans/entities/interest.entity'
 import { LoanManagementService } from 'src/loans/modules/loans-management/loans-management.service'
 import { InterestsService } from 'src/loans/modules/interests/interests.service'
 import { mockLoan } from '../../../../test/mocks/loans'
@@ -27,14 +29,10 @@ function date(t: Date) {
   return {
     setMonth: (month: number) => {
       t.setMonth(month)
-      console.log(t)
       return date(t)
     },
     setDay: (day: number) => {
-      console.log(day)
-      console.log('Before set day', t)
       t.setDate(day)
-      console.log('After set day', t)
       return date(t)
     },
     get: () => new Date(t.setUTCHours(0, 0, 0, 0)),
@@ -123,5 +121,13 @@ describe('JobInterestsService', () => {
       currentInterest: mockLoan.currentInterest + dailyInterest,
     })
     expect(result).toBe(true)
+  })
+
+  it('should calculate the days of delay of a loan', () => {
+    const deadline = tdate('2024-10-06')
+    const todayString = new Date().toLocaleDateString('en-CA')
+    const daysLate = jobInterestService.calculateDaysLate(10, deadline, todayString)
+
+    expect(daysLate).toEqual(11)
   })
 })

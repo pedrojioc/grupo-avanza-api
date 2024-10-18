@@ -128,11 +128,8 @@ export class JobInterestsService {
     return true
   }
 
-  async checkOverduePayments() {
-    const today = new Date()
-    const todayString = format(today, this.DATE_FORMAT)
-
-    const interests = await this.repository
+  async getOverdueInterests(todayString: string) {
+    return await this.repository
       .createQueryBuilder('interest')
       .where(
         '(interest_state_id = :interestStateAwaiting OR interest_state_id = :interestStateOverdue) AND deadline < :currentDate',
@@ -143,14 +140,26 @@ export class JobInterestsService {
         },
       )
       .getMany()
+  }
+
+  calculateDaysLate(currentDaysLate: number, deadline: Date, todayString: string) {
+    currentDaysLate = Number(currentDaysLate)
+    const deadlineString = format(deadline, this.DATE_FORMAT)
+    const differenceInDays = diffDays(todayString, deadlineString)
+
+    if (currentDaysLate > differenceInDays) return currentDaysLate
+    return differenceInDays
+  }
+
+  async checkOverduePayments() {
+    const todayString = format(new Date(), this.DATE_FORMAT)
+    const interests = await this.getOverdueInterests(todayString)
 
     for (const interest of interests) {
       const loan = await this.loanManagementService.findOne(interest.loanId)
-      const days = diffDays(todayString, format(interest.deadline, this.DATE_FORMAT))
-      const daysLate = Number(loan.daysLate) > days ? Number(loan.daysLate) + days : days
-      console.log(days, loan.daysLate)
+      const daysLate = this.calculateDaysLate(loan.daysLate, interest.deadline, todayString)
 
-      if (interest.state === ({ id: INTEREST_STATE.AWAITING_PAYMENT } as InterestState)) {
+      if (interest.state.id === INTEREST_STATE.AWAITING_PAYMENT) {
         await this.interestService.rawUpdate(interest.id, {
           interestStateId: INTEREST_STATE.OVERDUE,
         })

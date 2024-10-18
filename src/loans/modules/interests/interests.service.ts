@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindOptionsWhere, Not, Repository } from 'typeorm'
+import { diffDays, format } from '@formkit/tempo'
 
 import { Interest } from 'src/loans/entities/interest.entity'
 import { INTEREST_STATE } from 'src/loans/constants/interests'
@@ -12,6 +13,8 @@ import { FilterPaginator } from 'src/lib/filter-paginator'
 
 @Injectable()
 export class InterestsService {
+  private DATE_FORMAT = 'YYYY-MM-DD'
+
   constructor(@InjectRepository(Interest) private repository: Repository<Interest>) {}
 
   findAllByLoan(loanId: number, params: FilterPaginatorDto) {
@@ -66,6 +69,31 @@ export class InterestsService {
       .getOne()
 
     return interest
+  }
+
+  async findOldestInterest(loanId: number) {
+    const interest = await this.repository
+      .createQueryBuilder('interest')
+      .where('loan_id = :loanId AND interest_state_id = :interestStateId', {
+        loanId,
+        interestStateId: INTEREST_STATE.OVERDUE,
+      })
+      .orderBy('deadline', 'ASC')
+      .getOne()
+
+    return interest
+  }
+
+  async calculateDaysLate(loanId: number) {
+    const interest = await this.findOldestInterest(loanId)
+
+    if (!interest) return 0
+
+    const today = format(new Date(), this.DATE_FORMAT)
+    const deadline = format(interest.deadline, this.DATE_FORMAT)
+    const daysLate = diffDays(today, deadline)
+
+    return daysLate
   }
 
   //? W

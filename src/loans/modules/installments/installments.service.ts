@@ -12,20 +12,24 @@ import { Interest } from 'src/loans/entities/interest.entity'
 import { Commission } from 'src/employees/entities/commission.entity'
 import { EmployeeBalance } from 'src/employees/entities/employee-balance.entity'
 import { LoanManagementService } from '../loans-management/loans-management.service'
+import { InterestsService } from '../interests/interests.service'
 
 @Injectable()
 export class InstallmentsService {
   constructor(
     private dataSource: DataSource,
     private loanService: LoanManagementService,
+    private interestService: InterestsService,
   ) {}
 
-  private getNewLoanValues(loan: Loan, installment: CreateInstallmentDto) {
+  private async createUpdateLoanData(loan: Loan, installment: CreateInstallmentDto) {
     const newCurrentInterest = Number(loan.currentInterest) - installment.interest
     const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
     const totalInterestPaid = Number(loan.totalInterestPaid) + Number(installment.interest)
     const installmentsPaid = Number(loan.installmentsPaid) + 1
-    const data: UpdateLoanDto = { currentInterest, totalInterestPaid, installmentsPaid }
+    const daysLate = await this.interestService.calculateDaysLate(loan.id)
+
+    const data: UpdateLoanDto = { currentInterest, totalInterestPaid, installmentsPaid, daysLate }
 
     if (installment.capital > 0) {
       data.debt = Number(loan.debt) - installment.capital
@@ -66,7 +70,7 @@ export class InstallmentsService {
       )
 
       // ** UPDATE LOAN VALUES
-      const loanValues = this.getNewLoanValues(loan, installmentData)
+      const loanValues = await this.createUpdateLoanData(loan, installmentData)
       await queryRunner.manager.update(Loan, loan.id, {
         ...loanValues,
       })
