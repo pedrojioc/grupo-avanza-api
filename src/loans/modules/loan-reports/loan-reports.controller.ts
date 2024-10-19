@@ -10,7 +10,17 @@ export class LoanReportsController {
     const capital = await this.loanReportService.getCurrentCapital()
     const pendingInterest = await this.loanReportService.getPendingInterest()
     const currentLoans = await this.loanReportService.countCurrentLoans()
+    const unpaidInterestByAdvisor = await this.loanReportService.getUnpaidInterestGroupedByAdvisor()
+    const loansAmountByAdvisor = await this.loanReportService.getLoansAmountGroupedByAdvisor()
+    const overdueLoans = await this.loanReportService.countOverdueLoans()
 
-    return { capital, pendingInterest, currentLoans }
+    return {
+      capital,
+      pendingInterest,
+      currentLoans,
+      loansAmountByAdvisor,
+      unpaidInterestByAdvisor,
+      overdueLoans,
+    }
   }
 }
