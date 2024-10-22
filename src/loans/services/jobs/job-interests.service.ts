@@ -158,8 +158,7 @@ export class JobInterestsService {
     for (const interest of interests) {
       const loan = await this.loanManagementService.findOne(interest.loanId)
       const daysLate = this.calculateDaysLate(loan.daysLate, interest.deadline, todayString)
-
-      if (interest.state.id === INTEREST_STATE.AWAITING_PAYMENT) {
+      if (interest.interestStateId === INTEREST_STATE.AWAITING_PAYMENT) {
         await this.interestService.rawUpdate(interest.id, {
           interestStateId: INTEREST_STATE.OVERDUE,
         })
