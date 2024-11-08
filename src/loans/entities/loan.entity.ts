@@ -30,6 +30,9 @@ export class Loan {
   @JoinColumn({ name: 'payment_period_id' })
   paymentPeriod: PaymentPeriod
 
+  @Column({ name: 'payment_period_id' })
+  paymentPeriodId: number
+
   @ManyToOne(() => LoanState, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'loan_state_id' })
   loanState: LoanState
