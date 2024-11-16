@@ -1,23 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import { Repository } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
-import {
-  addDay,
-  addMonth,
-  diffDays,
-  format,
-  isEqual,
-  monthDays,
-  monthEnd,
-  parse,
-} from '@formkit/tempo'
+import { addDay, addMonth, diffDays, isEqual, monthDays, monthEnd, parse } from '@formkit/tempo'
 import { INTEREST_STATE } from '../../constants/interests'
 import { Interest } from '../../entities/interest.entity'
-import { CreateInterestDto } from '../../dtos/create-interest.dto'
-import { UpdateInterestDto } from 'src/loans/dtos/update-interest.dto'
 import { LOAN_STATES, PAYMENT_PERIODS } from 'src/loans/shared/constants'
-import { InterestState } from 'src/loans/entities/interest-state.entity'
-import { PaymentPeriod } from 'src/loans/entities/payment-period.entity'
 import { LoanManagementService } from 'src/loans/modules/loans-management/loans-management.service'
 import { Loan } from 'src/loans/entities/loan.entity'
 import { InstallmentsService } from 'src/loans/modules/installments/installments.service'
@@ -75,8 +62,8 @@ export class JobInterestsService {
     return deadline
   }
 
-  private generateDeadline(paymentPeriod: PaymentPeriod, today: Date) {
-    if (paymentPeriod.id === PAYMENT_PERIODS.FORTNIGHTLY) {
+  private generateDeadline(paymentPeriodId: number, today: Date) {
+    if (paymentPeriodId === PAYMENT_PERIODS.FORTNIGHTLY) {
       return this.getFortnightlyDeadline(today)
     }
     return addMonth(addDay(today, -1), 1)
@@ -89,10 +76,10 @@ export class JobInterestsService {
   private createInstallmentData(
     loan: Loan,
     dailyInterest: number,
-    paymentPeriod: PaymentPeriod,
+    paymentPeriodId: number,
     today: Date,
   ) {
-    const deadline = this.removeTime(this.generateDeadline(paymentPeriod, today))
+    const deadline = this.removeTime(this.generateDeadline(paymentPeriodId, today))
     const installmentData: CreateInstallmentDto = {
       loanId: loan.id,
       installmentStateId: INSTALLMENT_STATES.IN_PROGRESS,
@@ -136,7 +123,7 @@ export class JobInterestsService {
         const newInstallment = this.createInstallmentData(
           loan,
           dailyInterestAmount,
-          loan.paymentPeriod,
+          loan.paymentPeriodId,
           today,
         )
         installment = await this.installmentService.create(newInstallment)
@@ -224,6 +211,54 @@ export class JobInterestsService {
       }
     }
     console.log('Operación completada')
+  }
+
+  async insertUnsavedInterests() {
+    const loans = await this.loanManagementService.getLoansByState(LOAN_STATES.IN_PROGRESS)
+    const today = format(new Date(), this.DATE_FORMAT)
+    for (const loan of loans) {
+      const lastInterestGenerated = await this.repository
+        .createQueryBuilder('interest')
+        .where('loan_id = :loanId', { loanId: loan.id })
+        .orderBy('deadline', 'DESC')
+        .getOne()
+
+      if (lastInterestGenerated) {
+        // console.log('Interest found, ID: ', lastInterestGenerated.id)
+        // console.log(lastInterestGenerated.startAt, lastInterestGenerated.deadline)
+
+        const prevDeadline = lastInterestGenerated.deadline.toString()
+
+        // if today > deadline
+        if (isAfter(today, prevDeadline)) {
+          // Generate
+          console.log('Generate interest')
+          let startFrom = addDay(lastInterestGenerated.deadline, 1)
+          if (startFrom.getDate() === 31) {
+            startFrom = addDay(startFrom, 1)
+          }
+          const deadline = this.removeTime(addMonth(startFrom, 1))
+          const dailyInterest = this.getDailyInterest(loan.debt, loan.interestRate)
+          const days = diffDays(today, startFrom)
+          const newInterest: CreateInterestDto = {
+            amount: dailyInterest * days,
+            capital: loan.debt,
+            startAt: startFrom,
+            deadline,
+            days,
+            loanId: loan.id,
+            interestStateId: INTEREST_STATE.IN_PROGRESS,
+            lastInterestGenerated: new Date(),
+          }
+          await this.interestService.rawCreate(newInterest)
+        } else {
+          console.log('No generate', lastInterestGenerated.loanId)
+        }
+      } else {
+        console.log('Interest not found')
+      }
+    }
+    console.log('Task successful')
   }
   */
 }
