@@ -3,9 +3,8 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -14,8 +13,9 @@ import {
 import { Loan } from './loan.entity'
 import { PaymentMethod } from '../../payment-methods/entities/payment-method.entity'
 import { InstallmentState } from './installment-state.entity'
-import { Interest } from './interest.entity'
 import { Commission } from 'src/employees/entities/commission.entity'
+import { DailyInterest } from './daily-interest.entity'
+import { NumberColumnTransformer } from 'src/shared/transformers/number-column-transformer'
 
 @Entity({ name: 'installments' })
 export class Installment {
@@ -28,30 +28,42 @@ export class Installment {
   @Column({ name: 'loan_id' })
   loanId: number
 
-  @ManyToOne(() => PaymentMethod, { nullable: false, onDelete: 'RESTRICT' })
+  @ManyToOne(() => PaymentMethod, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'payment_method_id' })
   paymentMethod: PaymentMethod
+
   @Column({ name: 'payment_method_id' })
   paymentMethodId: number
 
   @ManyToOne(() => InstallmentState, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'installment_state_id' })
   installmentState: InstallmentState
+
   @Column({ name: 'installment_state_id' })
   installmentStateId: number
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   debt: number
 
+  @Column({ name: 'starts_on', type: 'date', nullable: true })
+  startsOn: Date
+
+  @Column({ name: 'payment_deadline', type: 'date', nullable: true })
+  paymentDeadline: Date
+
+  @Column({ type: 'int', default: 0 })
+  days: number
+
   @Column({
     type: 'decimal',
     precision: 15,
     scale: 2,
+    default: 0,
     comment: 'Abono que se hace a la deuda capital',
   })
   capital: number
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({ type: 'decimal', precision: 15, scale: 2, transformer: new NumberColumnTransformer() })
   interest: number
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
@@ -63,16 +75,6 @@ export class Installment {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date
 
-  @ManyToMany(() => Interest, (interest) => interest.installments, {
-    cascade: ['insert', 'update', 'remove'],
-  })
-  @JoinTable({
-    name: 'installments_interests',
-    joinColumn: { name: 'installment_id' },
-    inverseJoinColumn: { name: 'interest_id' },
-  })
-  interests: Interest[]
-
-  @OneToOne(() => Commission, (commission) => commission.installment)
-  commission: Commission
+  @OneToMany(() => DailyInterest, (dailyInterest) => dailyInterest.installment)
+  dailyInterest: DailyInterest[]
 }

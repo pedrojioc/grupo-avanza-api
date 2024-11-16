@@ -22,13 +22,13 @@ import { InstallmentRepository } from './repositories/installment.repository'
 import { InterestRepository } from './repositories/interest.repository'
 import { JobInterestsService } from './services/jobs/job-interests.service'
 import { InterestsModule } from './modules/interests/interests.module'
-import { LoanFactoryService } from './services/loan-factory.service'
 import { PaymentsModule } from './modules/payments/payments.module'
 // import { LoanManagementService } from './services/loan-management.service'
 import { InstallmentsModule } from './modules/installments/installments.module'
 import { InstallmentsService } from './modules/installments/installments.service'
 import { LoansManagementModule } from './modules/loans-management/loans-management.module'
 import { LoanReportsModule } from './modules/loan-reports/loan-reports.module'
+import { DailyInterestModule } from './modules/daily-interest/daily-interest.module'
 
 @Module({
   imports: [
@@ -49,6 +49,7 @@ import { LoanReportsModule } from './modules/loan-reports/loan-reports.module'
     InstallmentsModule,
     LoansManagementModule,
     LoanReportsModule,
+    DailyInterestModule,
   ],
   controllers: [LoansController, PaymentPeriodsController, LoanStatesController],
   providers: [
@@ -59,7 +60,6 @@ import { LoanReportsModule } from './modules/loan-reports/loan-reports.module'
     InstallmentRepository,
     InterestRepository,
     JobInterestsService,
-    LoanFactoryService,
   ],
 })
 export class LoansModule {}

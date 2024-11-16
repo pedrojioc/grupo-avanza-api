@@ -11,6 +11,8 @@ import { CreateInterestDto } from 'src/loans/dtos/create-interest.dto'
 import { INTEREST_STATE } from 'src/loans/constants/interests'
 import { Interest } from 'src/loans/entities/interest.entity'
 import { PaymentPeriod } from 'src/loans/entities/payment-period.entity'
+import { CreateInstallmentDto } from 'src/loans/dtos/create-installment.dto'
+import { Installment } from 'src/loans/entities/installment.entity'
 
 @Injectable()
 export class DatabaseSeeder {
@@ -65,5 +67,24 @@ export class DatabaseSeeder {
     loan.paymentPeriod = { id: loanData.paymentPeriodId } as PaymentPeriod
 
     return await repo.save(loan)
+  }
+
+  async seedInstallment(loanId: number, installmentStateId: number) {
+    const today = new Date()
+    const startsOn = today.setMonth(today.getMonth() - 1)
+    const installmentData: CreateInstallmentDto = {
+      loanId,
+      installmentStateId,
+      debt: 2_000_000,
+      startsOn: new Date(startsOn),
+      paymentDeadline: today,
+      days: 30,
+      capital: 0,
+      interest: 200_000,
+      total: 0,
+    }
+
+    const interest = await this.dataSource.getRepository(Installment).insert(installmentData)
+    return interest
   }
 }

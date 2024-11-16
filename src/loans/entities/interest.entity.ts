@@ -5,12 +5,12 @@ import {
   JoinColumn,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
 import { Loan } from './loan.entity'
 import { InterestState } from './interest-state.entity'
-import { Installment } from './installment.entity'
 
 @Entity({ name: 'interests' })
 export class Interest {
@@ -53,7 +53,4 @@ export class Interest {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date
-
-  @ManyToMany(() => Installment, (installment) => installment.interests)
-  installments: Installment[]
 }

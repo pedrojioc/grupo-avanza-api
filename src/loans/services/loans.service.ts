@@ -10,7 +10,7 @@ import { LOAN_STATES, LoanStateValueTypes } from '../shared/constants'
 import { PayOffDto } from '../dtos/pay-off.dto'
 
 import { FilterLoansDto } from '../dtos/filter-loans.dto'
-import { LoanFactoryService } from './loan-factory.service'
+import { LoanFactoryService } from '../modules/loans-management/loan-factory.service'
 import { PaymentsService } from '../modules/payments/payments.service'
 import { AddPaymentDto } from '../modules/payments/dtos/add-payment.dto'
 import { PaymentPeriod } from '../entities/payment-period.entity'

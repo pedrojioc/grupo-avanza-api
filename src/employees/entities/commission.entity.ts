@@ -21,7 +21,7 @@ export class Commission {
   @JoinColumn({ name: 'employee_id' })
   employee: Employee
 
-  @OneToOne(() => Installment, (installment) => installment.commission, {
+  @OneToOne(() => Installment, {
     nullable: false,
     onDelete: 'RESTRICT',
   })

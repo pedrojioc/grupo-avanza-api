@@ -1,12 +1,12 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from 'src/app.module'
-import { JobInterestsService } from '../services/jobs/job-interests.service'
 import { LoansModule } from '../loans.module'
+import { InstallmentsService } from '../modules/installments/installments.service'
 
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule)
-  const interestService = app.select(LoansModule).get(JobInterestsService, { strict: true })
-  // await interestService.updateState()
+  const installmentService = app.select(LoansModule).get(InstallmentsService, { strict: true })
+  await installmentService.migrateInterestToInstallment()
   await app.close()
 }
 

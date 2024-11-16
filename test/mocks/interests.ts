@@ -20,5 +20,4 @@ export const mockInterest: Interest = {
   lastInterestGenerated: null,
   createdAt: new Date(),
   updatedAt: new Date(),
-  installments: [],
 }

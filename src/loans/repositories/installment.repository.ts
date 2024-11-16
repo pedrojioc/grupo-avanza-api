@@ -1,3 +1,5 @@
+// ? Este repositorio no está en uso, se conserva en el proyecto solo con fines de documentación
+
 import { Injectable } from '@nestjs/common'
 import { DataSource, Repository } from 'typeorm'
 
@@ -13,6 +15,7 @@ export class InstallmentRepository extends Repository<Installment> {
     super(Installment, dataSource.createEntityManager())
   }
 
+  /*
   async createInstallment(installmentDto: CreateInstallmentDto) {
     const { loanId, paymentMethodId, installmentStateId, interestIds, ...rest } = installmentDto
 
@@ -45,4 +48,6 @@ export class InstallmentRepository extends Repository<Installment> {
     }
     return installmentObject
   }
+
+  */
 }

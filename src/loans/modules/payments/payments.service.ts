@@ -1,107 +1,61 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common'
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 
-import { PayOffDto } from 'src/loans/dtos/pay-off.dto'
-import { InterestsService } from '../interests/interests.service'
-import { CreateInstallmentDto } from 'src/loans/dtos/create-installment.dto'
-import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
-import { Loan } from 'src/loans/entities/loan.entity'
 import { InstallmentsService } from '../installments/installments.service'
 import { LoanManagementService } from '../loans-management/loans-management.service'
 import { AddPaymentDto } from './dtos/add-payment.dto'
-import { Interest } from 'src/loans/entities/interest.entity'
+
+import { InstallmentFactoryService } from '../installments/installment-factory.service'
+import { PayOffDto } from 'src/loans/dtos/pay-off.dto'
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private loanManagementService: LoanManagementService,
-    private interestService: InterestsService,
     private installmentService: InstallmentsService,
+    private installmentFactoryService: InstallmentFactoryService,
   ) {}
 
   async addPayment(paymentDto: AddPaymentDto) {
     const loan = await this.loanManagementService.findOne(paymentDto.loanId, ['employee'])
-    if (paymentDto.capital > 0 && paymentDto.interestIds.length === 0) {
+    if (paymentDto.capital > 0 && !paymentDto.installmentId) {
       await this.validatePaymentToCapital(loan.id)
     }
-    if (paymentDto.capital === 0 && paymentDto.interestIds.length === 0) {
+    if (paymentDto.capital === 0 && !paymentDto.installmentId) {
       throw new UnprocessableEntityException('Los pagos deben ser mayor a 0')
     }
-    const installmentDta = await this.createInstallmentData(
-      loan,
-      paymentDto.interestIds,
-      paymentDto,
-    )
-    const rs = await this.installmentService.create(loan, installmentDta)
 
-    return rs
+    try {
+      const installment = await this.installmentService.findOne(paymentDto.installmentId)
+      const installmentUpdate = this.installmentFactoryService.update(installment, paymentDto)
+
+      const rs = await this.installmentService.makePayment(installment.id, installmentUpdate, loan)
+
+      return rs
+    } catch (error) {
+      throw new Error(error)
+    }
   }
 
-  async payOff(loanId: number, addPaymentDto: AddPaymentDto) {
+  async payOff(loanId: number, addPaymentDto: PayOffDto) {
     const loan = await this.loanManagementService.findOne(loanId, ['employee'])
 
-    const interests = await this.interestService.findUnpaidInterests(loanId)
-    if (interests.length === 0) throw new NotFoundException('Intereses no encontrados')
+    const installments = await this.installmentService.findUnpaidInstallments(loanId)
+    if (installments.length === 0) throw new NotFoundException('Cuotas no encontrados')
 
-    const interestIds = this.getInterestIds(interests)
-
-    const installmentData = await this.createInstallmentData(loan, interestIds, addPaymentDto)
-    installmentData.capital = loan.debt
-    installmentData.total = Number(loan.debt) + installmentData.interest
-
-    const rs = await this.installmentService.create(loan, installmentData)
-
-    return rs
+    for (const installment of installments) {
+      const installmentUpdate = this.installmentFactoryService.update(installment, addPaymentDto)
+      await this.installmentService.makePayment(installment.id, installmentUpdate, loan)
+    }
   }
 
-  private async hasUnpaidInterest(loanId: number): Promise<Boolean> {
-    const interests = await this.interestService.findUnpaidInterests(loanId)
-    return !!interests.length
+  private async hasUnpaidInstallments(loanId: number): Promise<Boolean> {
+    const installments = await this.installmentService.findUnpaidInstallments(loanId)
+    return !!installments.length
   }
 
   private async validatePaymentToCapital(loanId: number) {
-    const hasInterests = await this.hasUnpaidInterest(loanId)
-    if (hasInterests)
-      throw new UnprocessableEntityException('Operación inválida, existen intereses no pagados')
-  }
-
-  private getInterestIds(interests: Interest[]) {
-    return interests.map((i) => i.id)
-  }
-
-  private async createInstallmentData(
-    loan: Loan,
-    interestIds: number[],
-    addPaymentDto: AddPaymentDto,
-  ) {
-    const interestAmount = await this.interestService.getInterestsAmount(interestIds) // !! Verificar si se deja aquí
-
-    if (addPaymentDto.customInterest && addPaymentDto.customInterest < interestAmount) {
-      throw new BadRequestException('Intereses insuficiente')
-    }
-
-    // if (!addPaymentDto.capital) throw new BadRequestException('Capital field is required')
-
-    const interestToPay = addPaymentDto.customInterest
-      ? addPaymentDto.customInterest
-      : interestAmount
-    const total = Number(interestToPay) + Number(addPaymentDto.capital)
-
-    const installmentData: CreateInstallmentDto = {
-      loanId: loan.id,
-      installmentStateId: INSTALLMENT_STATES.PAID,
-      paymentMethodId: addPaymentDto.paymentMethodId,
-      debt: loan.debt,
-      capital: addPaymentDto.capital,
-      interest: interestToPay,
-      total: total,
-      interestIds,
-    }
-    console.log('Line 102', installmentData)
-    return installmentData
+    const hasInstallments = await this.hasUnpaidInstallments(loanId)
+    if (hasInstallments)
+      throw new UnprocessableEntityException('Operación inválida, existen cuotas sin pagar')
   }
 }

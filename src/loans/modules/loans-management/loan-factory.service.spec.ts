@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing'
+
 import { LoanFactoryService } from './loan-factory.service'
-import { CreateLoanDto } from '../dtos/loans.dto'
+import { CreateLoanDto } from '../../dtos/loans.dto'
 import { Employee } from 'src/employees/entities/employee.entity'
 import { Customer } from 'src/customers/entities/customer.entity'
-import { LOAN_STATES } from '../shared/constants'
-import { Loan } from '../entities/loan.entity'
+import { LOAN_STATES } from '../../shared/constants'
+import { Loan } from '../../entities/loan.entity'
 
 describe('LoanFactoryService', () => {
   let service: LoanFactoryService
@@ -41,6 +42,7 @@ describe('LoanFactoryService', () => {
       startAt: undefined,
       endAt: undefined,
     }
+
     const loan = service.createLoan(loanDto, customer, employee)
 
     expect(loan).toBeInstanceOf(Loan)

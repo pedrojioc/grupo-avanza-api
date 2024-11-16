@@ -1,88 +1,128 @@
+import { DataSource, Repository } from 'typeorm'
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
-import { DataSource, In } from 'typeorm'
-import { InstallmentRepository } from 'src/loans/repositories/installment.repository'
-import { CreateInstallmentDto } from 'src/loans/dtos/create-installment.dto'
-import { UpdateLoanDto } from 'src/loans/dtos/loans.dto'
-import { LOAN_STATES } from 'src/loans/shared/constants'
+import { InjectRepository } from '@nestjs/typeorm'
+import { diffDays, format } from '@formkit/tempo'
+
 import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
-import { INTEREST_STATE } from 'src/loans/constants/interests'
+import { CreateInstallmentDto } from 'src/loans/dtos/create-installment.dto'
+import { UpdateInstallmentDto } from 'src/loans/dtos/update-installment.dto'
 import { Loan } from 'src/loans/entities/loan.entity'
 import { Installment } from 'src/loans/entities/installment.entity'
-import { Interest } from 'src/loans/entities/interest.entity'
 import { Commission } from 'src/employees/entities/commission.entity'
 import { EmployeeBalance } from 'src/employees/entities/employee-balance.entity'
-import { LoanManagementService } from '../loans-management/loans-management.service'
-import { InterestsService } from '../interests/interests.service'
+import { LoanFactoryService } from 'src/loans/modules/loans-management/loan-factory.service'
+import { Interest } from 'src/loans/entities/interest.entity'
+import { INTEREST_STATE } from 'src/loans/constants/interests'
 
 @Injectable()
 export class InstallmentsService {
+  private DATE_FORMAT = 'YYYY-MM-DD'
   constructor(
+    @InjectRepository(Installment) private repository: Repository<Installment>,
     private dataSource: DataSource,
-    private loanService: LoanManagementService,
-    private interestService: InterestsService,
+    private loanFactoryService: LoanFactoryService,
   ) {}
 
-  private async createUpdateLoanData(loan: Loan, installment: CreateInstallmentDto) {
-    const newCurrentInterest = Number(loan.currentInterest) - installment.interest
-    const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
-    const totalInterestPaid = Number(loan.totalInterestPaid) + Number(installment.interest)
-    const installmentsPaid = Number(loan.installmentsPaid) + 1
-    const daysLate = await this.interestService.calculateDaysLate(loan.id)
-
-    const data: UpdateLoanDto = { currentInterest, totalInterestPaid, installmentsPaid, daysLate }
-
-    if (installment.capital > 0) {
-      data.debt = Number(loan.debt) - installment.capital
-    }
-    if (data.debt === 0) data.loanStateId = LOAN_STATES.FINALIZED
-    return data
+  create(installmentDto: CreateInstallmentDto) {
+    const installment = this.repository.create(installmentDto)
+    // this.dataSource.createQueryBuilder().insert().into(Installment).values(installmentDto)
+    return this.repository.save(installment)
   }
 
-  async create(loanOrId: Loan | number, installmentData: CreateInstallmentDto) {
-    const loan = await this.loanService.findOrReturnLoan(loanOrId)
-    installmentData.debt = loan.debt
-    installmentData.installmentStateId = INSTALLMENT_STATES.PAID
+  update(id: number, installmentDto: UpdateInstallmentDto) {
+    return this.repository.update(id, installmentDto)
+  }
 
-    const { interestIds } = installmentData
+  findOne(id: number) {
+    return this.repository.findOneBy({ id })
+  }
 
+  async findOldestInstallment(loanId: number) {
+    const installment = await this.repository
+      .createQueryBuilder('installment')
+      .where('loan_id = :loanId AND installment_state_id = :installmentStateId', {
+        loanId,
+        installmentStateId: INSTALLMENT_STATES.OVERDUE,
+      })
+      .orderBy('payment_deadline', 'ASC')
+      .getOne()
+
+    return installment
+  }
+
+  async getCurrentInstallment(loanId: number) {
+    const installment = await this.repository
+      .createQueryBuilder('interest')
+      .where('loan_id = :loanId AND installment_state_id = :installmentStateId', {
+        loanId,
+        installmentStateId: INSTALLMENT_STATES.IN_PROGRESS,
+      })
+      .getOne()
+
+    return installment
+  }
+
+  async calculateDaysLate(loanId: number) {
+    const installment = await this.findOldestInstallment(loanId)
+
+    if (!installment) return 0
+
+    const today = format(new Date(), this.DATE_FORMAT)
+    const deadline = format(installment.paymentDeadline, this.DATE_FORMAT)
+    const daysLate = diffDays(today, deadline)
+
+    return daysLate
+  }
+
+  findUnpaidInstallments(loanId: number) {
+    return this.repository
+      .createQueryBuilder('installments')
+      .where('loan_id = :loanId', { loanId })
+      .andWhere('installment_state_id = :overdue OR installment_state_id = :awaiting', {
+        overdue: INSTALLMENT_STATES.OVERDUE,
+        awaiting: INSTALLMENT_STATES.AWAITING_PAYMENT,
+      })
+      .getMany()
+  }
+
+  async makePayment(installmentId: number, updateInstallmentDto: UpdateInstallmentDto, loan: Loan) {
     const queryRunner = this.dataSource.createQueryRunner()
 
     await queryRunner.connect()
     await queryRunner.startTransaction()
+
     try {
-      // const installmentObject = this.repository.createInstallmentObject(installmentData)
+      // TODO: Actualizar el estado de la cuota y el total
+      const rs = await queryRunner.manager
+        .createQueryBuilder()
+        .update(Installment)
+        .set(updateInstallmentDto)
+        .where('id = :id', { id: installmentId })
+        .execute()
 
-      // ** CREATE INSTALLMENT
-      const installmentResult = await queryRunner.manager.insert(Installment, installmentData)
-
-      // ** CREATE INSTALLMENT / INTEREST RELATION
+      // TODO: Actualizar el currentInterest en loans y la deuda en caso de pago a capital, etc
+      const daysLate = await this.calculateDaysLate(loan.id)
+      const loanData = this.loanFactoryService.valuesAfterPayment(
+        loan,
+        updateInstallmentDto,
+        daysLate,
+      )
       await queryRunner.manager
         .createQueryBuilder()
-        .relation(Installment, 'interests')
-        .of(installmentResult.raw.insertId)
-        .add(interestIds)
+        .update(Loan)
+        .set(loanData)
+        .where('id = :loanId', { loanId: loan.id })
+        .execute()
 
-      // ** UPDATE INTERESTS STATE
-      await queryRunner.manager.update(
-        Interest,
-        { id: In(interestIds) },
-        { interestStateId: INTEREST_STATE.PAID },
-      )
-
-      // ** UPDATE LOAN VALUES
-      const loanValues = await this.createUpdateLoanData(loan, installmentData)
-      await queryRunner.manager.update(Loan, loan.id, {
-        ...loanValues,
-      })
-
+      // TODO: Agregar la comisión al asesor
       if (loan.employee.id !== 1) {
         // ** Add commissions
         const employeeId = Number(loan.employee.id)
-        const commissionAmount = installmentData.interest * 0.3
+        const commissionAmount = updateInstallmentDto.interest * 0.3
         await queryRunner.manager.insert(Commission, {
           employee: { id: employeeId },
-          installment: { id: installmentResult.raw.insertId },
-          interestAmount: installmentData.interest,
+          installment: { id: installmentId },
+          interestAmount: updateInstallmentDto.interest,
           amount: commissionAmount,
           rate: 30,
         })
@@ -96,16 +136,45 @@ export class InstallmentsService {
           { balance: Number(employeeBalance.balance) + commissionAmount },
         )
       }
-
       await queryRunner.commitTransaction()
-
-      return installmentResult
+      return rs
     } catch (error) {
-      console.log(error)
       await queryRunner.rollbackTransaction()
-      throw new InternalServerErrorException()
+      console.log(error)
+      throw new InternalServerErrorException(error)
     } finally {
       await queryRunner.release()
     }
+  }
+
+  async migrateInterestToInstallment() {
+    const interestRepository = this.dataSource.getRepository(Interest)
+    const interests = await interestRepository
+      .createQueryBuilder('interests')
+      .where('interest_state_id = :overdue OR interest_state_id = :awaiting', {
+        overdue: INTEREST_STATE.OVERDUE,
+        awaiting: INTEREST_STATE.AWAITING_PAYMENT,
+      })
+      .orderBy('deadline', 'ASC')
+      .getMany()
+
+    for (const interest of interests) {
+      const installmentData: CreateInstallmentDto = {
+        loanId: interest.loanId,
+        installmentStateId: interest.interestStateId,
+        debt: interest.capital,
+        startsOn: interest.startAt,
+        paymentDeadline: interest.deadline,
+        days: interest.days,
+        capital: 0,
+        interest: interest.amount,
+        total: 0,
+      }
+
+      const rs = await this.create(installmentData)
+      console.log('Cuota creada: ', rs.id)
+    }
+
+    console.log('Tarea finalizada!')
   }
 }

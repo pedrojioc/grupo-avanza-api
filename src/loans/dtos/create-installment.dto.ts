@@ -1,12 +1,9 @@
 import { Type } from 'class-transformer'
-import { IsArray, IsNumber, IsOptional, IsPositive } from 'class-validator'
+import { IsDate, IsNumber, IsOptional, IsPositive } from 'class-validator'
 
 export class CreateInstallmentDto {
   @IsPositive()
   loanId: number
-
-  @IsPositive()
-  paymentMethodId: number
 
   @IsPositive()
   @IsOptional()
@@ -14,8 +11,16 @@ export class CreateInstallmentDto {
 
   @IsNumber()
   @Type(() => Number)
-  @IsOptional()
-  debt?: number
+  debt: number
+
+  @IsDate()
+  startsOn: Date
+
+  @IsDate()
+  paymentDeadline: Date
+
+  @IsNumber()
+  days: number
 
   @IsNumber()
   @Type(() => Number)
@@ -27,13 +32,5 @@ export class CreateInstallmentDto {
 
   @IsNumber()
   @Type(() => Number)
-  @IsOptional()
-  customInterest?: number
-
-  @IsNumber()
-  @Type(() => Number)
   total: number
-
-  @IsArray()
-  readonly interestIds: number[]
 }

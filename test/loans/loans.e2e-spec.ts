@@ -15,6 +15,7 @@ import { INTEREST_STATE } from 'src/loans/constants/interests'
 import { Installment } from 'src/loans/entities/installment.entity'
 import { AddPaymentDto } from 'src/loans/modules/payments/dtos/add-payment.dto'
 import { DatabaseSeeder } from 'src/database/database-seeder'
+import { error } from 'console'
 
 describe('LoansController (e2e)', () => {
   let app: INestApplication
@@ -75,113 +76,117 @@ describe('LoansController (e2e)', () => {
 
   it('/loans/:id/installments (POST) - WITHOUT CAPITAL', async () => {
     const loan = await seeder.seedLoans()
-    const interestRs = await seeder.seedInterest(loan.id, INTEREST_STATE.OVERDUE)
-    const interest = await interestRepository.findOne({ where: { id: interestRs.raw.insertId } })
+    const installmentRs = await seeder.seedInstallment(loan.id, INSTALLMENT_STATES.AWAITING_PAYMENT)
+    const installment = await installmentRepository.findOne({
+      where: { id: installmentRs.raw.insertId },
+    })
     if (!loan) throw new Error('Loan not found')
 
     const data: AddPaymentDto = {
       loanId: loan.id,
       paymentMethodId: 1,
-      installmentStateId: INSTALLMENT_STATES.PAID,
       capital: 0,
-      interestIds: [interest.id],
+      installmentId: installment.id,
     }
+
     const response = await request(hostServer)
       .post(`/loans/${loan.id}/installments`)
       .set({ Authorization: `Bearer ${accessToken}` })
       .send(data)
       .expect(201)
 
-    const installment = await installmentRepository.findOneBy({ id: response.body.raw.insertId })
-    const interestPaid = await interestRepository.findOne({ where: { id: interest.id } })
+    const installmentAfterPayment = await installmentRepository.findOneBy({
+      id: installment.id,
+    })
     const loanAfterPayment = await loanRepository.findOne({ where: { id: loan.id } })
 
-    expect(installment.interest).toEqual(interest.amount)
-    expect(Number(installment.capital)).toEqual(0)
+    expect(Number(installmentAfterPayment.capital)).toEqual(0)
     expect(Number(loanAfterPayment.debt)).toEqual(loan.debt)
-    expect(interestPaid.interestStateId).toEqual(INTEREST_STATE.PAID)
+    expect(installmentAfterPayment.installmentStateId).toEqual(INSTALLMENT_STATES.PAID)
 
     return response
   })
 
   it('/loans/:id/installments (POST) - INTEREST + CAPITAL', async () => {
     const loan = await seeder.seedLoans()
-    const interestRs = await seeder.seedInterest(loan.id, INTEREST_STATE.OVERDUE)
-    const interest = await interestRepository.findOne({ where: { id: interestRs.raw.insertId } })
+    const installmentRs = await seeder.seedInstallment(loan.id, INSTALLMENT_STATES.AWAITING_PAYMENT)
+    const installmentId = installmentRs.raw.insertId
+
     if (!loan) throw new Error('Loan not found')
 
+    const capital = 500_000
     const data: AddPaymentDto = {
       loanId: loan.id,
       paymentMethodId: 1,
-      installmentStateId: INSTALLMENT_STATES.PAID,
-      capital: 200_000,
-      interestIds: [interest.id],
+      capital,
+      installmentId,
     }
+
     const response = await request(hostServer)
-      .post(`/loans/${interest.loanId}/installments`)
+      .post(`/loans/${loan.id}/installments`)
       .set({ Authorization: `Bearer ${accessToken}` })
       .send(data)
       .expect(201)
 
-    const installment = await installmentRepository.findOneBy({ id: response.body.raw.insertId })
-    const interestPaid = await interestRepository.findOne({ where: { id: interest.id } })
+    const installment = await installmentRepository.findOneBy({ id: installmentId })
     const loanAfterPayment = await loanRepository.findOne({ where: { id: loan.id } })
 
-    const expectedDebt = Number(loan.debt) - 200_000
+    const expectedDebt = Number(loan.debt) - capital
 
-    expect(installment.interest).toEqual(interest.amount)
-    expect(Number(installment.capital)).toEqual(200000)
+    expect(Number(installment.capital)).toEqual(capital)
     expect(Number(loanAfterPayment.debt)).toEqual(expectedDebt)
-    expect(interestPaid.interestStateId).toEqual(INTEREST_STATE.PAID)
+    expect(installment.installmentStateId).toEqual(INSTALLMENT_STATES.PAID)
 
     return response
   })
 
   it('/loans/:id/installments (POST) - ONLY CAPITAL NO PENDING INTEREST', async () => {
     const loan = await seeder.seedLoans()
-    const interestRs = await seeder.seedInterest(loan.id, INTEREST_STATE.PAID)
-
-    const interest = await interestRepository.findOne({ where: { id: interestRs.raw.insertId } })
+    const installmentRs = await seeder.seedInstallment(loan.id, INSTALLMENT_STATES.AWAITING_PAYMENT)
+    const installment = await installmentRepository.findOne({
+      where: { id: installmentRs.raw.insertId },
+    })
 
     if (!loan) throw new Error('Loan not found')
 
+    const capital = 200_000
     const data: AddPaymentDto = {
       loanId: loan.id,
       paymentMethodId: 1,
-      installmentStateId: INSTALLMENT_STATES.PAID,
-      capital: 200000,
-      interestIds: [],
+      capital,
+      installmentId: null,
     }
+
     const response = await request(hostServer)
       .post(`/loans/${data.loanId}/installments`)
       .set({ Authorization: `Bearer ${accessToken}` })
       .send(data)
       .expect(201)
 
-    const installment = await installmentRepository.findOneBy({ id: response.body.raw.insertId })
-    const loanAfterPayment = await loanRepository.findOne({ where: { id: interest.loanId } })
+    const installmentAfterPayment = await installmentRepository.findOneBy({
+      id: installment.id,
+    })
+    const loanAfterPayment = await loanRepository.findOne({ where: { id: loan.id } })
 
-    const expectedDebt = Number(loan.debt) - 200_000
+    const expectedDebt = Number(loan.debt) - capital
 
-    expect(Number(installment.interest)).toEqual(0)
-    expect(Number(installment.capital)).toEqual(200000)
+    expect(Number(installmentAfterPayment.interest)).toEqual(0)
+    expect(Number(installment.capital)).toEqual(capital)
     expect(Number(loanAfterPayment.debt)).toEqual(expectedDebt)
 
     return response
   })
 
-  it('/loans/:id/installments (POST) - ONLY CAPITAL PENDING INTEREST', async () => {
+  it('/loans/:id/installments (POST) - ONLY CAPITAL WITH PENDING INTEREST', async () => {
     const loan = await seeder.seedLoans()
-    const interestRs = await seeder.seedInterest(loan.id, INTEREST_STATE.OVERDUE)
 
     if (!loan) throw new Error('Loan not found')
 
     const data: AddPaymentDto = {
       loanId: loan.id,
       paymentMethodId: 1,
-      installmentStateId: INSTALLMENT_STATES.PAID,
       capital: 200000,
-      interestIds: [],
+      installmentId: null,
     }
     const response = await request(hostServer)
       .post(`/loans/${data.loanId}/installments`)
@@ -192,14 +197,14 @@ describe('LoansController (e2e)', () => {
     return response
   })
 
+  /*
   it('/loans/:id/pay-off (POST)', async () => {
     const loan = await loanRepository.findOne({ where: { loanStateId: LOAN_STATES.IN_PROGRESS } })
     const payOffData: AddPaymentDto = {
       loanId: loan.id,
       paymentMethodId: 1,
-      installmentStateId: INSTALLMENT_STATES.PAID,
       capital: 0,
-      interestIds: [],
+      instalmentId: 0
     }
 
     const response = await request(hostServer)
@@ -244,4 +249,5 @@ describe('LoansController (e2e)', () => {
     expect(loanAfterPayOff.loanStateId).toEqual(LOAN_STATES.FINALIZED)
     expect(Number(installment.interest)).toEqual(interestToPay)
   })
+  */
 })

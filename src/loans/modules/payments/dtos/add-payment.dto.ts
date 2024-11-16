@@ -8,10 +8,6 @@ export class AddPaymentDto {
   @IsPositive()
   paymentMethodId: number
 
-  @IsPositive()
-  @IsOptional()
-  installmentStateId: number
-
   @IsNumber()
   @Type(() => Number)
   capital: number // ? Monto a pagar a capital
@@ -21,7 +17,6 @@ export class AddPaymentDto {
   @IsOptional()
   customInterest?: number // ? Monto a pagar por intereses, si es un monto diferente al del sistema
 
-  @IsArray()
-  @IsOptional()
-  readonly interestIds: number[]
+  @IsPositive()
+  readonly installmentId: number
 }

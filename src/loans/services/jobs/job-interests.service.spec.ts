@@ -1,26 +1,37 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { date as tdate } from '@formkit/tempo'
+import { parse } from '@formkit/tempo'
 
 import { JobInterestsService } from './job-interests.service'
 import { Interest } from 'src/loans/entities/interest.entity'
 import { LoanManagementService } from 'src/loans/modules/loans-management/loans-management.service'
-import { InterestsService } from 'src/loans/modules/interests/interests.service'
+import { InstallmentsService } from 'src/loans/modules/installments/installments.service'
 import { mockLoan } from '../../../../test/mocks/loans'
-import { mockInterest } from '../../../../test/mocks/interests'
-import { CreateInterestDto } from 'src/loans/dtos/create-interest.dto'
-import { INTEREST_STATE } from 'src/loans/constants/interests'
 
-const mockInterestService = {
-  rawCreate: jest.fn(),
-  rawUpdate: jest.fn(),
-  getCurrentInterest: jest.fn(),
+import { mockInstallment } from '../../../../test/mocks/installments'
+
+import { DailyInterestService } from 'src/loans/modules/daily-interest/daily-interest.service'
+import { CreateInstallmentDto } from 'src/loans/dtos/create-installment.dto'
+import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
+import { CreateDailyInterestDto } from 'src/loans/modules/daily-interest/create-daily-interest.dto'
+
+const FORMAT_DATE = 'YYYY-MM-DD'
+
+const mockInstallmentService = {
+  create: jest.fn(),
+  update: jest.fn(),
+  getCurrentInstallment: jest.fn(),
 }
 
 const mockLoanManagementService = {
   rawUpdate: jest.fn(),
   getLoansByState: jest.fn(),
+}
+
+const mockDailyInterestService = {
+  create: jest.fn(),
+  findOneByDate: jest.fn(),
 }
 
 function date(t: Date) {
@@ -41,8 +52,9 @@ function date(t: Date) {
 
 describe('JobInterestsService', () => {
   let jobInterestService: JobInterestsService
-  let interestService: InterestsService
   let loanManagementService: LoanManagementService
+  let installmentService: InstallmentsService
+  let dailyInterestService: DailyInterestService
 
   const repositoryToken = getRepositoryToken(Interest)
   beforeEach(async () => {
@@ -51,38 +63,38 @@ describe('JobInterestsService', () => {
         JobInterestsService,
         { provide: repositoryToken, useClass: Repository },
         { provide: LoanManagementService, useValue: mockLoanManagementService },
-        { provide: InterestsService, useValue: mockInterestService },
+        { provide: InstallmentsService, useValue: mockInstallmentService },
+        { provide: DailyInterestService, useValue: mockDailyInterestService },
       ],
     }).compile()
 
     jobInterestService = module.get<JobInterestsService>(JobInterestsService)
     loanManagementService = module.get<LoanManagementService>(LoanManagementService)
-    interestService = module.get<InterestsService>(InterestsService)
+    installmentService = module.get<InstallmentsService>(InstallmentsService)
+    dailyInterestService = module.get<DailyInterestService>(DailyInterestService)
   })
 
   it('should be defined', () => {
     expect(jobInterestService).toBeDefined()
   })
 
-  it('should generate the updated values ​​of the interest', () => {})
-
   it('should update amount of an existing Interest', async () => {
     jest.spyOn(loanManagementService, 'getLoansByState').mockResolvedValueOnce([mockLoan])
-    jest.spyOn(interestService, 'getCurrentInterest').mockResolvedValueOnce(mockInterest)
+    jest.spyOn(installmentService, 'getCurrentInstallment').mockResolvedValueOnce(mockInstallment)
     jest
       .spyOn(loanManagementService, 'rawUpdate')
       .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
 
     const dailyInterest = jobInterestService.getDailyInterest(mockLoan.debt, 10)
-    const newInterestAmount = mockInterest.amount + dailyInterest
-    const interestData = {
-      amount: newInterestAmount,
-      days: mockInterest.days + 1,
-      lastInterestGenerated: new Date(),
+    const newInterestAmount = mockInstallment.interest + dailyInterest
+    const installmentData = {
+      interest: newInterestAmount,
+      days: mockInstallment.days + 1,
     }
     const result = await jobInterestService.runDailyInterest()
 
-    expect(interestService.rawUpdate).toHaveBeenCalledWith(mockInterest.id, interestData)
+    expect(dailyInterestService.create).toHaveBeenCalled()
+    expect(installmentService.update).toHaveBeenCalledWith(mockInstallment.id, installmentData)
     expect(loanManagementService.rawUpdate).toHaveBeenCalledWith(mockLoan.id, {
       currentInterest: mockLoan.currentInterest + dailyInterest,
     })
@@ -90,8 +102,10 @@ describe('JobInterestsService', () => {
   })
 
   it('should create a new interest period', async () => {
+    jest.clearAllMocks()
     jest.spyOn(loanManagementService, 'getLoansByState').mockResolvedValueOnce([mockLoan])
-    jest.spyOn(interestService, 'getCurrentInterest').mockResolvedValueOnce(null)
+    jest.spyOn(installmentService, 'getCurrentInstallment').mockResolvedValueOnce(null)
+    jest.spyOn(installmentService, 'create').mockResolvedValueOnce(mockInstallment)
     jest
       .spyOn(loanManagementService, 'rawUpdate')
       .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
@@ -100,23 +114,31 @@ describe('JobInterestsService', () => {
     const today = new Date()
 
     const deadline = date(today)
-      .setMonth(10)
+      .setMonth(today.getMonth() + 1)
       .setDay(today.getDate() - 1)
       .get()
-    const interestData: CreateInterestDto = {
-      amount: dailyInterest,
-      capital: mockLoan.debt,
-      startAt: new Date(),
-      deadline,
-      days: 1,
+    const installmentData: CreateInstallmentDto = {
       loanId: mockLoan.id,
-      interestStateId: INTEREST_STATE.IN_PROGRESS,
-      lastInterestGenerated: new Date(),
+      installmentStateId: INSTALLMENT_STATES.IN_PROGRESS,
+      debt: mockLoan.debt,
+      startsOn: parse(new Date().toISOString(), 'YYYY-MM-DD'),
+      paymentDeadline: deadline,
+      days: 1,
+      capital: 0,
+      interest: dailyInterest,
+      total: 0,
+    }
+
+    const dailyInterestData: CreateDailyInterestDto = {
+      installmentId: 1,
+      amount: dailyInterest,
+      date: new Date(),
     }
 
     const result = await jobInterestService.runDailyInterest()
 
-    expect(interestService.rawCreate).toHaveBeenCalledWith(interestData)
+    expect(installmentService.create).toHaveBeenCalledWith(installmentData)
+    expect(dailyInterestService.create).toHaveBeenCalled()
     expect(loanManagementService.rawUpdate).toHaveBeenCalledWith(mockLoan.id, {
       currentInterest: mockLoan.currentInterest + dailyInterest,
     })
@@ -124,9 +146,10 @@ describe('JobInterestsService', () => {
   })
 
   it('should calculate the days of delay of a loan', () => {
-    const deadline = tdate('2024-10-06')
-    const todayString = new Date().toLocaleDateString('en-CA')
-    const daysLate = jobInterestService.calculateDaysLate(10, deadline, todayString)
+    const deadline = parse(new Date('2024-10-06').toISOString(), FORMAT_DATE)
+    const today = parse(new Date('2024-10-17').toISOString(), FORMAT_DATE)
+    const CURRENT_DAYS_LATE = 10
+    const daysLate = jobInterestService.calculateDaysLate(CURRENT_DAYS_LATE, deadline, today)
 
     expect(daysLate).toEqual(11)
   })
