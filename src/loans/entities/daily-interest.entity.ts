@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -19,6 +20,7 @@ export class DailyInterest {
     nullable: false,
     onDelete: 'RESTRICT',
   })
+  @JoinColumn({ name: 'installment_id' })
   installment: Installment
 
   @Column({ name: 'installment_id' })

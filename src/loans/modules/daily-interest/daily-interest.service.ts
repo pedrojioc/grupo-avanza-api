@@ -13,7 +13,7 @@ export class DailyInterestService {
     return this.repository.save(daily)
   }
 
-  findOneByDate(date: Date) {
-    return this.repository.findOne({ where: { date } })
+  findOneByDate(installmentId: number, date: Date) {
+    return this.repository.findOne({ where: { installmentId, date } })
   }
 }

@@ -151,9 +151,8 @@ export class InstallmentsService {
     const interestRepository = this.dataSource.getRepository(Interest)
     const interests = await interestRepository
       .createQueryBuilder('interests')
-      .where('interest_state_id = :overdue OR interest_state_id = :awaiting', {
-        overdue: INTEREST_STATE.OVERDUE,
-        awaiting: INTEREST_STATE.AWAITING_PAYMENT,
+      .where('interest_state_id <> :paid', {
+        paid: INTEREST_STATE.PAID,
       })
       .orderBy('deadline', 'ASC')
       .getMany()
