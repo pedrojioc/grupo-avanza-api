@@ -17,9 +17,9 @@ export const mockLoan: Loan = {
   paymentPeriod: new PaymentPeriod(),
   loanState: loanStateInProgress,
   loanStateId: loanStateInProgress.id,
-  amount: 2_000_000,
+  amount: 2000000,
   interestRate: 10,
-  debt: 2_000_000,
+  debt: 2000000,
   installmentsNumber: 6,
   installmentsPaid: 0,
   daysLate: 0,
@@ -32,6 +32,7 @@ export const mockLoan: Loan = {
   lastInterestPayment: undefined,
   createdAt: new Date(),
   updatedAt: new Date(),
+  paymentPeriodId: 1,
 }
 
 const mockLoans = new Array(10).map((i) => ({ ...mockLoan, id: i + 1 }))

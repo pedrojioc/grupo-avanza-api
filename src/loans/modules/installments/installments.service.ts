@@ -1,5 +1,5 @@
-import { DataSource, Repository } from 'typeorm'
-import { Injectable, InternalServerErrorException } from '@nestjs/common'
+import { DataSource, EntityManager, Repository } from 'typeorm'
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { diffDays, format } from '@formkit/tempo'
 
@@ -13,6 +13,7 @@ import { EmployeeBalance } from 'src/employees/entities/employee-balance.entity'
 import { LoanFactoryService } from 'src/loans/modules/loans-management/loan-factory.service'
 import { Interest } from 'src/loans/entities/interest.entity'
 import { INTEREST_STATE } from 'src/loans/constants/interests'
+import { UpdateLoanDto } from 'src/loans/dtos/loans.dto'
 
 @Injectable()
 export class InstallmentsService {
@@ -33,8 +34,10 @@ export class InstallmentsService {
     return this.repository.update(id, installmentDto)
   }
 
-  findOne(id: number) {
-    return this.repository.findOneBy({ id })
+  async findOne(id: number) {
+    const installment = await this.repository.findOneBy({ id })
+    if (!installment) throw new NotFoundException()
+    return installment
   }
 
   async findOldestInstallment(loanId: number) {
@@ -76,13 +79,22 @@ export class InstallmentsService {
 
   findUnpaidInstallments(loanId: number) {
     return this.repository
-      .createQueryBuilder('installments')
+      .createQueryBuilder()
       .where('loan_id = :loanId', { loanId })
-      .andWhere('installment_state_id = :overdue OR installment_state_id = :awaiting', {
-        overdue: INSTALLMENT_STATES.OVERDUE,
-        awaiting: INSTALLMENT_STATES.AWAITING_PAYMENT,
+      .andWhere('installment_state_id <> :paid AND installment_state_id <> :inProgress', {
+        paid: INSTALLMENT_STATES.PAID,
+        inProgress: INSTALLMENT_STATES.IN_PROGRESS,
       })
       .getMany()
+  }
+
+  async updateLoan(manager: EntityManager, loanData: UpdateLoanDto, loanId: number) {
+    await manager
+      .createQueryBuilder()
+      .update(Loan)
+      .set(loanData)
+      .where('id = :loanId', { loanId })
+      .execute()
   }
 
   async makePayment(installmentId: number, updateInstallmentDto: UpdateInstallmentDto, loan: Loan) {
@@ -100,25 +112,12 @@ export class InstallmentsService {
         .where('id = :id', { id: installmentId })
         .execute()
 
-      // TODO: Actualizar el currentInterest en loans y la deuda en caso de pago a capital, etc
-      const daysLate = await this.calculateDaysLate(loan.id)
-      const loanData = this.loanFactoryService.valuesAfterPayment(
-        loan,
-        updateInstallmentDto,
-        daysLate,
-      )
-      await queryRunner.manager
-        .createQueryBuilder()
-        .update(Loan)
-        .set(loanData)
-        .where('id = :loanId', { loanId: loan.id })
-        .execute()
-
       // TODO: Agregar la comisión al asesor
+      let commissionAmount = 0
       if (loan.employee.id !== 1) {
         // ** Add commissions
         const employeeId = Number(loan.employee.id)
-        const commissionAmount = updateInstallmentDto.interest * 0.3
+        commissionAmount = updateInstallmentDto.interest * 0.3
         await queryRunner.manager.insert(Commission, {
           employee: { id: employeeId },
           installment: { id: installmentId },
@@ -136,6 +135,42 @@ export class InstallmentsService {
           { balance: Number(employeeBalance.balance) + commissionAmount },
         )
       }
+
+      // TODO: Actualizar el currentInterest en loans y la deuda en caso de pago a capital, etc
+      const daysLate = await this.calculateDaysLate(loan.id)
+      const loanData = this.loanFactoryService.valuesAfterPayment(
+        loan,
+        updateInstallmentDto,
+        daysLate,
+        commissionAmount,
+      )
+      await this.updateLoan(queryRunner.manager, loanData, loan.id)
+
+      await queryRunner.commitTransaction()
+      return rs
+    } catch (error) {
+      await queryRunner.rollbackTransaction()
+      console.log(error)
+      throw new InternalServerErrorException(error)
+    } finally {
+      await queryRunner.release()
+    }
+  }
+
+  /*
+    Desc: This is responsible for making a capital payment, creating a fee and updating the loan. 
+  */
+  async makePaymentToCapital(installmentDto: CreateInstallmentDto, loan: Loan) {
+    const queryRunner = this.dataSource.createQueryRunner()
+
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+
+    try {
+      const rs = await queryRunner.manager.insert(Installment, installmentDto)
+      const loanData = this.loanFactoryService.valuesAfterPayment(loan, installmentDto, 0, 0)
+      await this.updateLoan(queryRunner.manager, loanData, loan.id)
+
       await queryRunner.commitTransaction()
       return rs
     } catch (error) {

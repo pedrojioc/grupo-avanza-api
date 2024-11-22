@@ -6,6 +6,9 @@ import { AddPaymentDto } from './dtos/add-payment.dto'
 
 import { InstallmentFactoryService } from '../installments/installment-factory.service'
 import { PayOffDto } from 'src/loans/dtos/pay-off.dto'
+import { CreateInstallmentDto } from 'src/loans/dtos/create-installment.dto'
+import { Loan } from 'src/loans/entities/loan.entity'
+import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 
 @Injectable()
 export class PaymentsService {
@@ -17,8 +20,10 @@ export class PaymentsService {
 
   async addPayment(paymentDto: AddPaymentDto) {
     const loan = await this.loanManagementService.findOne(paymentDto.loanId, ['employee'])
+
+    // ? When payment is only to capital
     if (paymentDto.capital > 0 && !paymentDto.installmentId) {
-      await this.validatePaymentToCapital(loan.id)
+      return await this.paymentToCapital(paymentDto, loan)
     }
     if (paymentDto.capital === 0 && !paymentDto.installmentId) {
       throw new UnprocessableEntityException('Los pagos deben ser mayor a 0')
@@ -34,6 +39,25 @@ export class PaymentsService {
     } catch (error) {
       throw new Error(error)
     }
+  }
+
+  async paymentToCapital(paymentDto: AddPaymentDto, loan: Loan) {
+    await this.validatePaymentToCapital(loan.id)
+
+    const today = new Date()
+    const installmentDto: CreateInstallmentDto = {
+      loanId: loan.id,
+      installmentStateId: INSTALLMENT_STATES.PAID,
+      debt: 0,
+      startsOn: today,
+      paymentDeadline: today,
+      days: 0,
+      capital: paymentDto.capital,
+      interest: 0,
+      total: paymentDto.capital,
+    }
+    const rs = await this.installmentService.makePaymentToCapital(installmentDto, loan)
+    return rs
   }
 
   async payOff(loanId: number, addPaymentDto: PayOffDto) {
@@ -55,7 +79,8 @@ export class PaymentsService {
 
   private async validatePaymentToCapital(loanId: number) {
     const hasInstallments = await this.hasUnpaidInstallments(loanId)
-    if (hasInstallments)
+    if (hasInstallments) {
       throw new UnprocessableEntityException('Operación inválida, existen cuotas sin pagar')
+    }
   }
 }

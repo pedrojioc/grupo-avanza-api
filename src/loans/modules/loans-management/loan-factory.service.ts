@@ -34,13 +34,25 @@ export class LoanFactoryService {
     return loan
   }
 
-  valuesAfterPayment(loan: Loan, installment: UpdateInstallmentDto, daysLate: number) {
+  valuesAfterPayment(
+    loan: Loan,
+    installment: UpdateInstallmentDto,
+    daysLate: number,
+    commissionAmount: number,
+  ) {
     const newCurrentInterest = Number(loan.currentInterest) - installment.interest
     const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
     const totalInterestPaid = Number(loan.totalInterestPaid) + Number(installment.interest)
     const installmentsPaid = Number(loan.installmentsPaid) + 1
+    const commissionsPaid = Number(loan.commissionsPaid) + commissionAmount
 
-    const data: UpdateLoanDto = { currentInterest, totalInterestPaid, installmentsPaid, daysLate }
+    const data: UpdateLoanDto = {
+      currentInterest,
+      totalInterestPaid,
+      installmentsPaid,
+      daysLate,
+      commissionsPaid,
+    }
 
     if (installment.capital > 0) {
       data.debt = Number(loan.debt) - installment.capital

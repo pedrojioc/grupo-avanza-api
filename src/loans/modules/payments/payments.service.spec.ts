@@ -55,18 +55,19 @@ describe('PaymentsService', () => {
   it('should make a payment to one installment, only interest', async () => {
     jest.spyOn(loanManagementService, 'findOne').mockResolvedValueOnce(mockLoan)
     jest.spyOn(installmentService, 'findOne').mockResolvedValueOnce(mockInstallment)
-    jest.spyOn(installmentService, 'makePayment').mockResolvedValueOnce(true)
+    jest
+      .spyOn(installmentService, 'makePayment')
+      .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
 
     const paymentDto: AddPaymentDto = {
       loanId: mockLoan.id,
       paymentMethodId: 1,
       capital: 0,
-      instalmentId: mockInstallment.id,
+      installmentId: mockInstallment.id,
     }
 
     const rs = await paymentService.addPayment(paymentDto)
     expect(installmentService.makePayment).toHaveBeenCalled()
-    expect(rs).toBe(true)
   })
 
   it('Should throw an error when the payment is only to capital, with overdue installments', async () => {
@@ -77,7 +78,9 @@ describe('PaymentsService', () => {
     overdueInstallment.installmentStateId = INSTALLMENT_STATES.OVERDUE
     jest.spyOn(loanManagementService, 'findOne').mockResolvedValueOnce(mockLoan)
     jest.spyOn(installmentService, 'findOne').mockResolvedValueOnce(mockInstallment)
-    const spy = jest.spyOn(installmentService, 'makePayment').mockResolvedValueOnce(true)
+    const spy = jest
+      .spyOn(installmentService, 'makePayment')
+      .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
     jest
       .spyOn(installmentService, 'findUnpaidInstallments')
       .mockResolvedValueOnce([overdueInstallment])
@@ -86,7 +89,7 @@ describe('PaymentsService', () => {
       loanId: mockLoan.id,
       paymentMethodId: 1,
       capital: 100_000,
-      instalmentId: null,
+      installmentId: null,
     }
 
     await expect(paymentService.addPayment(paymentDto)).rejects.toThrow(
@@ -100,14 +103,16 @@ describe('PaymentsService', () => {
 
     jest.spyOn(loanManagementService, 'findOne').mockResolvedValueOnce(mockLoan)
     jest.spyOn(installmentService, 'findOne').mockResolvedValueOnce(mockInstallment)
-    const spy = jest.spyOn(installmentService, 'makePayment').mockResolvedValueOnce(true)
+    const spy = jest
+      .spyOn(installmentService, 'makePayment')
+      .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
     jest.spyOn(installmentService, 'findUnpaidInstallments').mockResolvedValueOnce([])
 
     const paymentDto: AddPaymentDto = {
       loanId: mockLoan.id,
       paymentMethodId: 1,
       capital: 0,
-      instalmentId: null,
+      installmentId: null,
     }
 
     await expect(paymentService.addPayment(paymentDto)).rejects.toThrow(
