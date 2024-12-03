@@ -8,8 +8,12 @@ export class UpdateInstallmentDto extends PartialType(CreateInstallmentDto) {
   @IsOptional()
   paymentMethodId?: number
 
-  @IsNumber()
+  @IsPositive()
   @Type(() => Number)
   @IsOptional()
   customInterest?: number
+
+  @IsNumber()
+  @IsOptional()
+  interestPaymentAmount?: number
 }

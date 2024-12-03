@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, UnprocessableEntityException } from '@nestjs/common'
 import { Installment } from 'src/loans/entities/installment.entity'
 import { AddPaymentDto } from '../payments/dtos/add-payment.dto'
 import { UpdateInstallmentDto } from 'src/loans/dtos/update-installment.dto'
@@ -8,24 +8,36 @@ import { PayOffDto } from 'src/loans/dtos/pay-off.dto'
 @Injectable()
 export class InstallmentFactoryService {
   update(installment: Installment, addPaymentDto: AddPaymentDto | PayOffDto) {
-    if (addPaymentDto.customInterest && addPaymentDto.customInterest < installment.interest) {
-      throw new BadRequestException('Intereses insuficiente')
-    }
-
     // if (!addPaymentDto.capital) throw new BadRequestException('Capital field is required')
 
-    const interestToPay = addPaymentDto.customInterest
-      ? addPaymentDto.customInterest
-      : installment.interest
+    if (installment.interestPaid > 0 && !addPaymentDto.customInterest) {
+      throw new BadRequestException(
+        'El monto de intereses no coinciden con los registrados en el sistema',
+      )
+    }
 
-    const total = Number(interestToPay) + Number(addPaymentDto.capital)
+    let interestPaid: number = installment.interest
+    let interestPaymentAmount = installment.interest
+    if (addPaymentDto.customInterest) {
+      interestPaid = installment.interestPaid + addPaymentDto.customInterest
+      interestPaymentAmount = addPaymentDto.customInterest
+    }
+    if (interestPaid < installment.interest && addPaymentDto.capital > 0) {
+      throw new UnprocessableEntityException('Intereses pendientes, pago a capital rechazado')
+    }
+
+    const total = Number(interestPaid) + Number(addPaymentDto.capital)
     const { capital, paymentMethodId } = addPaymentDto
     const installmentData: UpdateInstallmentDto = {
       paymentMethodId,
-      interest: interestToPay,
       capital,
+      interestPaid,
       total,
-      installmentStateId: INSTALLMENT_STATES.PAID,
+      interestPaymentAmount,
+    }
+
+    if (interestPaid >= installment.interest) {
+      installmentData.installmentStateId = INSTALLMENT_STATES.PAID
     }
 
     return installmentData

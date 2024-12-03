@@ -9,6 +9,7 @@ import { LOAN_STATES } from '../../shared/constants'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { UpdateInstallmentDto } from '../../dtos/update-installment.dto'
+import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 
 @Injectable()
 export class LoanFactoryService {
@@ -36,26 +37,30 @@ export class LoanFactoryService {
 
   valuesAfterPayment(
     loan: Loan,
-    installment: UpdateInstallmentDto,
+    updateInstallmentDto: UpdateInstallmentDto,
     daysLate: number,
     commissionAmount: number,
   ) {
-    const newCurrentInterest = Number(loan.currentInterest) - installment.interest
+    const interestToPay = updateInstallmentDto.interestPaymentAmount
+
+    const newCurrentInterest = Number(loan.currentInterest) - interestToPay
     const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
-    const totalInterestPaid = Number(loan.totalInterestPaid) + Number(installment.interest)
-    const installmentsPaid = Number(loan.installmentsPaid) + 1
+    const totalInterestPaid = Number(loan.totalInterestPaid) + interestToPay
     const commissionsPaid = Number(loan.commissionsPaid) + commissionAmount
 
     const data: UpdateLoanDto = {
       currentInterest,
       totalInterestPaid,
-      installmentsPaid,
       daysLate,
       commissionsPaid,
     }
 
-    if (installment.capital > 0) {
-      data.debt = Number(loan.debt) - installment.capital
+    if (updateInstallmentDto.installmentStateId === INSTALLMENT_STATES.PAID) {
+      data.installmentsPaid = Number(loan.installmentsPaid) + 1
+    }
+
+    if (updateInstallmentDto.capital > 0) {
+      data.debt = Number(loan.debt) - updateInstallmentDto.capital
     }
     if (data.debt === 0) data.loanStateId = LOAN_STATES.FINALIZED
     return data

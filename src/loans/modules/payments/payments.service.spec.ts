@@ -121,6 +121,27 @@ describe('PaymentsService', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 
+  it('should record a partial payment when the amount is less than the interest', async () => {
+    jest.clearAllMocks()
+
+    jest.spyOn(loanManagementService, 'findOne').mockResolvedValueOnce(mockLoan)
+    jest.spyOn(installmentService, 'findOne').mockResolvedValueOnce(mockInstallment)
+    jest
+      .spyOn(installmentService, 'makePayment')
+      .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
+
+    const paymentDto: AddPaymentDto = {
+      loanId: mockLoan.id,
+      paymentMethodId: 1,
+      capital: 0,
+      installmentId: mockInstallment.id,
+      customInterest: 50_000,
+    }
+
+    const rs = await paymentService.addPayment(paymentDto)
+    expect(installmentService.makePayment).toHaveBeenCalled()
+  })
+
   // describe('PayOff', () => {
   //   it('should throw NotFoundException if no unpaid interests are found', async () => {
   //     // Arrange

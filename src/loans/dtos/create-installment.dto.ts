@@ -1,5 +1,6 @@
-import { Type } from 'class-transformer'
-import { IsDate, IsNumber, IsOptional, IsPositive } from 'class-validator'
+import { parse } from '@formkit/tempo'
+import { Transform, Type } from 'class-transformer'
+import { IsDate, IsDateString, IsNumber, IsOptional, IsPositive } from 'class-validator'
 
 export class CreateInstallmentDto {
   @IsPositive()
@@ -17,6 +18,11 @@ export class CreateInstallmentDto {
   startsOn: Date
 
   @IsDate()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return parse(value, 'YYYY-MM-DD')
+
+    return value
+  })
   paymentDeadline: Date
 
   @IsNumber()
@@ -29,6 +35,10 @@ export class CreateInstallmentDto {
   @IsNumber()
   @Type(() => Number)
   interest: number
+
+  @IsNumber()
+  @Type(() => Number)
+  interestPaid: number
 
   @IsNumber()
   @Type(() => Number)

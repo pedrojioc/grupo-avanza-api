@@ -89,6 +89,7 @@ export class JobInterestsService {
       days: 1,
       capital: 0,
       interest: dailyInterest,
+      interestPaid: 0,
       total: 0,
     }
 

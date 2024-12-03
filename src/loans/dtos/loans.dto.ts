@@ -32,7 +32,7 @@ export class CreateLoanDto {
 
   @IsNumber()
   @IsOptional()
-  readonly installmentsPaid?: number
+  installmentsPaid?: number
 
   @IsNumber()
   @IsOptional()

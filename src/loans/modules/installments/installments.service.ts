@@ -1,4 +1,4 @@
-import { DataSource, EntityManager, Repository } from 'typeorm'
+import { DataSource, EntityManager, FindOptionsWhere, Repository } from 'typeorm'
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { diffDays, format } from '@formkit/tempo'
@@ -14,6 +14,9 @@ import { LoanFactoryService } from 'src/loans/modules/loans-management/loan-fact
 import { Interest } from 'src/loans/entities/interest.entity'
 import { INTEREST_STATE } from 'src/loans/constants/interests'
 import { UpdateLoanDto } from 'src/loans/dtos/loans.dto'
+import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
+import { InstallmentState } from 'src/loans/entities/installment-state.entity'
+import { FilterPaginator } from 'src/lib/filter-paginator'
 
 @Injectable()
 export class InstallmentsService {
@@ -38,6 +41,22 @@ export class InstallmentsService {
     const installment = await this.repository.findOneBy({ id })
     if (!installment) throw new NotFoundException()
     return installment
+  }
+
+  findAllByLoan(loanId: number, params: FilterPaginatorDto) {
+    const whereOptions: FindOptionsWhere<Installment> = {}
+
+    if (params.state) {
+      // const installmentState = { id: params.state } as InstallmentState
+      whereOptions.installmentStateId = params.state
+    }
+
+    const paginator = new FilterPaginator(this.repository, {
+      where: { loanId, ...whereOptions },
+      relations: ['installmentState'],
+    })
+    const result = paginator.paginate(1).execute()
+    return result
   }
 
   async findOldestInstallment(loanId: number) {
@@ -77,18 +96,21 @@ export class InstallmentsService {
     return daysLate
   }
 
-  findUnpaidInstallments(loanId: number) {
-    return this.repository
+  findUnpaidInstallments(loanId: number, installmentId?: number) {
+    const query = this.repository
       .createQueryBuilder()
       .where('loan_id = :loanId', { loanId })
       .andWhere('installment_state_id <> :paid AND installment_state_id <> :inProgress', {
         paid: INSTALLMENT_STATES.PAID,
         inProgress: INSTALLMENT_STATES.IN_PROGRESS,
       })
-      .getMany()
+
+    if (installmentId) query.andWhere('id <> :installmentId', { installmentId })
+
+    return query.getMany()
   }
 
-  async updateLoan(manager: EntityManager, loanData: UpdateLoanDto, loanId: number) {
+  private async updateLoan(manager: EntityManager, loanData: UpdateLoanDto, loanId: number) {
     await manager
       .createQueryBuilder()
       .update(Loan)
@@ -97,18 +119,26 @@ export class InstallmentsService {
       .execute()
   }
 
-  async makePayment(installmentId: number, updateInstallmentDto: UpdateInstallmentDto, loan: Loan) {
-    const queryRunner = this.dataSource.createQueryRunner()
+  async makePayment(
+    installment: Installment,
+    updateInstallmentDto: UpdateInstallmentDto,
+    loan: Loan,
+  ) {
+    const { id: installmentId } = installment
 
+    const queryRunner = this.dataSource.createQueryRunner()
     await queryRunner.connect()
     await queryRunner.startTransaction()
 
     try {
+      const commissionBasis = updateInstallmentDto.interestPaymentAmount
+      const installmentData = this.repository.create(updateInstallmentDto)
+
       // TODO: Actualizar el estado de la cuota y el total
       const rs = await queryRunner.manager
         .createQueryBuilder()
         .update(Installment)
-        .set(updateInstallmentDto)
+        .set(installmentData)
         .where('id = :id', { id: installmentId })
         .execute()
 
@@ -116,8 +146,9 @@ export class InstallmentsService {
       let commissionAmount = 0
       if (loan.employee.id !== 1) {
         // ** Add commissions
+
         const employeeId = Number(loan.employee.id)
-        commissionAmount = updateInstallmentDto.interest * 0.3
+        commissionAmount = commissionBasis * 0.3
         await queryRunner.manager.insert(Commission, {
           employee: { id: employeeId },
           installment: { id: installmentId },
@@ -168,7 +199,9 @@ export class InstallmentsService {
 
     try {
       const rs = await queryRunner.manager.insert(Installment, installmentDto)
-      const loanData = this.loanFactoryService.valuesAfterPayment(loan, installmentDto, 0, 0)
+      const installmentData: UpdateInstallmentDto = { ...installmentDto, interestPaymentAmount: 0 }
+      const loanData = this.loanFactoryService.valuesAfterPayment(loan, installmentData, 0, 0)
+
       await this.updateLoan(queryRunner.manager, loanData, loan.id)
 
       await queryRunner.commitTransaction()
@@ -203,6 +236,7 @@ export class InstallmentsService {
         capital: 0,
         interest: interest.amount,
         total: 0,
+        interestPaid: 0,
       }
 
       const rs = await this.create(installmentData)

@@ -32,7 +32,7 @@ export class Installment {
   @JoinColumn({ name: 'payment_method_id' })
   paymentMethod: PaymentMethod
 
-  @Column({ name: 'payment_method_id' })
+  @Column({ name: 'payment_method_id', nullable: true })
   paymentMethodId: number
 
   @ManyToOne(() => InstallmentState, { nullable: false, onDelete: 'RESTRICT' })
@@ -65,6 +65,17 @@ export class Installment {
 
   @Column({ type: 'decimal', precision: 15, scale: 2, transformer: new NumberColumnTransformer() })
   interest: number
+
+  @Column({
+    name: 'interest_piad',
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    default: 0,
+    comment: 'Pago realizado a intereses',
+    transformer: new NumberColumnTransformer(),
+  })
+  interestPaid: number
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   total: number

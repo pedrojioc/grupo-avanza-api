@@ -75,13 +75,14 @@ export class DatabaseSeeder {
     const installmentData: CreateInstallmentDto = {
       loanId,
       installmentStateId,
-      debt: 2_000_000,
+      debt: 2000000,
       startsOn: new Date(startsOn),
       paymentDeadline: today,
       days: 30,
       capital: 0,
-      interest: 200_000,
+      interest: 200000,
       total: 0,
+      interestPaid: 0,
     }
 
     const interest = await this.dataSource.getRepository(Installment).insert(installmentData)
