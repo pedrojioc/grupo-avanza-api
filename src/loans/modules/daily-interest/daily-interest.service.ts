@@ -28,4 +28,15 @@ export class DailyInterestService {
     const result = paginator.paginate(params.page).execute()
     return result
   }
+
+  async fillDebt() {
+    const items = await this.repository.find()
+    for (const item of items) {
+      const interest = Math.round(Number(item.amount) * 30)
+      const debt = Math.round(interest * 10)
+      console.log('Actualizando...', debt)
+      await this.repository.update(item.id, { debt })
+    }
+    console.log('Tarea finalizada')
+  }
 }

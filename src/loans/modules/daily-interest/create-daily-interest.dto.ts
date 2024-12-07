@@ -5,6 +5,9 @@ export class CreateDailyInterestDto {
   installmentId: number
 
   @IsPositive()
+  debt: number
+
+  @IsPositive()
   amount: number
 
   @IsDate()

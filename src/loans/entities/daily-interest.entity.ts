@@ -26,6 +26,9 @@ export class DailyInterest {
   @Column({ name: 'installment_id' })
   installmentId: number
 
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  debt: number
+
   @Column({ type: 'decimal', precision: 15, scale: 2, transformer: new NumberColumnTransformer() })
   amount: number
 

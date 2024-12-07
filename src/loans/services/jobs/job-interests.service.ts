@@ -134,6 +134,7 @@ export class JobInterestsService {
       // Create daily interest history
       await this.dailyInterestService.create({
         installmentId: installment.id,
+        debt: loan.debt,
         amount: dailyInterestAmount,
         date: today,
       })
