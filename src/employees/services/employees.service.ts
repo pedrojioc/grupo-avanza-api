@@ -22,7 +22,8 @@ export class EmployeesService {
   }
   findAll(params: FilterEmployeesDto) {
     let queryOptions = {}
-    if (params.filter) queryOptions = { where: { [params.filter]: Like(`${params.value}%`) } }
+    if (params.searchBy)
+      queryOptions = { where: { [params.searchBy]: Like(`${params.searchValue}%`) } }
     if (params.offset) queryOptions = { ...queryOptions, offset: params.offset }
 
     return this.repository.find({

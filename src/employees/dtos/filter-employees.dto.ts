@@ -10,8 +10,8 @@ export class FilterEmployeesDto {
   offset?: number
 
   @IsOptional()
-  filter?: string
+  searchBy?: string
 
   @IsOptional()
-  value?: string
+  searchValue?: string
 }

@@ -62,10 +62,21 @@ export class LoansService {
       .paginate(params.page)
       .execute()
     */
+    const { employeeId } = params
+
+    // ? Query base
     const loans = this.repository
       .createQueryBuilder('loans')
       .leftJoinAndSelect('loans.customer', 'customer')
-      .leftJoinAndSelect('loans.employee', 'employee')
+
+    // ? Filter by employee
+    if (employeeId) {
+      loans.innerJoinAndSelect('loans.employee', 'employee', 'employee.id = :employeeId', {
+        employeeId,
+      })
+    } else {
+      loans.leftJoinAndSelect('loans.employee', 'employee')
+    }
 
     if (params.interestState) {
       loans

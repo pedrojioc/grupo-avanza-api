@@ -6,9 +6,14 @@ export class FilterLoansDto extends FilterPaginatorDto {
   @IsNumber()
   @Type(() => Number)
   @IsOptional()
-  interestState?: Number
+  interestState?: number
 
   @IsString()
   @IsOptional()
   client?: string
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  employeeId?: number
 }
