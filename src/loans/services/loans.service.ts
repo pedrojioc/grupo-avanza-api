@@ -15,6 +15,7 @@ import { PaymentsService } from '../modules/payments/payments.service'
 import { AddPaymentDto } from '../modules/payments/dtos/add-payment.dto'
 import { PaymentPeriod } from '../entities/payment-period.entity'
 import { LoanState } from '../entities/loan-state.entity'
+import { ROLE } from 'src/roles/constants/role-ids'
 
 @Injectable()
 export class LoansService {
@@ -48,20 +49,7 @@ export class LoansService {
     return this.repository.save(loan)
   }
 
-  async findAll(params: FilterLoansDto) {
-    /*
-    const paginator = new FilterPaginator(this.repository, {
-      itemsPerPage: 10,
-      relations: ['customer', 'employee'],
-    })
-    */
-    /*
-    const result = paginator
-      .filter({ loanStateId: params.state })
-      .search(params.searchBy, params.searchValue)
-      .paginate(params.page)
-      .execute()
-    */
+  async findAll(params: FilterLoansDto, roleId: number, userId: number) {
     const { employeeId } = params
 
     // ? Query base
@@ -70,12 +58,18 @@ export class LoansService {
       .leftJoinAndSelect('loans.customer', 'customer')
 
     // ? Filter by employee
-    if (employeeId) {
-      loans.innerJoinAndSelect('loans.employee', 'employee', 'employee.id = :employeeId', {
-        employeeId,
-      })
+    if (roleId === ROLE.CEO) {
+      if (employeeId) {
+        loans.innerJoinAndSelect('loans.employee', 'employee', 'employee.id = :employeeId', {
+          employeeId,
+        })
+      } else {
+        loans.leftJoinAndSelect('loans.employee', 'employee')
+      }
     } else {
-      loans.leftJoinAndSelect('loans.employee', 'employee')
+      loans.innerJoinAndSelect('loans.employee', 'employee', 'employee.id = :employeeId', {
+        employeeId: userId,
+      })
     }
 
     if (params.interestState) {
