@@ -108,14 +108,15 @@ export class JobInterestsService {
     for (const loan of loans) {
       console.log('Loan Id: ', loan.id)
       const dailyInterestAmount = this.getDailyInterest(loan.debt, loan.interestRate)
-      let installment = await this.installmentService.getCurrentInstallment(loan.id)
-
+      let installment = await this.installmentService.getCurrentInstallment(loan.id, today)
+      console.log(installment)
       if (installment) {
         const daily = await this.dailyInterestService.findOneByDate(installment.id, today)
-
+        console.log('Daily: ', daily)
         if (daily) continue
         console.log('Run daily for existing installment')
         const installmentValues = this.generateUpdateInterestDto(installment, dailyInterestAmount)
+        console.log(typeof installment.paymentDeadline, typeof today)
         if (isEqual(installment.paymentDeadline, today)) {
           installmentValues.installmentStateId = INSTALLMENT_STATES.AWAITING_PAYMENT
         }

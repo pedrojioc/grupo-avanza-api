@@ -72,13 +72,17 @@ export class InstallmentsService {
     return installment
   }
 
-  async getCurrentInstallment(loanId: number) {
+  async getCurrentInstallment(loanId: number, date: Date) {
     const installment = await this.repository
       .createQueryBuilder('interest')
-      .where('loan_id = :loanId AND installment_state_id = :installmentStateId', {
-        loanId,
-        installmentStateId: INSTALLMENT_STATES.IN_PROGRESS,
-      })
+      .where(
+        'loan_id = :loanId AND installment_state_id = :installmentStateId AND payment_deadline >= :currentDate',
+        {
+          loanId,
+          installmentStateId: INSTALLMENT_STATES.IN_PROGRESS,
+          currentDate: date,
+        },
+      )
       .getOne()
 
     return installment
