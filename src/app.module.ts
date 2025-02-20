@@ -15,6 +15,7 @@ import { MenuModule } from './menu/menu.module'
 import config from './config'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module'
+import { NotificationsModule } from './notifications/notifications.module'
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module'
     AuthModule,
     MenuModule,
     PaymentMethodsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: 'APP_GUARD', useClass: JwtAuthGuard }],

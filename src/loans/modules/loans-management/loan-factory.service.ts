@@ -6,10 +6,8 @@ import { Employee } from 'src/employees/entities/employee.entity'
 import { PaymentPeriod } from '../../entities/payment-period.entity'
 import { LoanState } from '../../entities/loan-state.entity'
 import { LOAN_STATES } from '../../shared/constants'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
-import { UpdateInstallmentDto } from '../../dtos/update-installment.dto'
 import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
+import { Installment } from 'src/loans/entities/installment.entity'
 
 @Injectable()
 export class LoanFactoryService {
@@ -35,18 +33,13 @@ export class LoanFactoryService {
     return loan
   }
 
-  valuesAfterPayment(
-    loan: Loan,
-    updateInstallmentDto: UpdateInstallmentDto,
-    daysLate: number,
-    commissionAmount: number,
-  ) {
-    const interestToPay = updateInstallmentDto.interestPaymentAmount
+  valuesAfterPayment(loan: Loan, installment: Installment, daysLate: number, commission: number) {
+    const interestToPay = installment.interestPaid
 
     const newCurrentInterest = Number(loan.currentInterest) - interestToPay
     const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
     const totalInterestPaid = Number(loan.totalInterestPaid) + interestToPay
-    const commissionsPaid = Number(loan.commissionsPaid) + commissionAmount
+    const commissionsPaid = Number(loan.commissionsPaid) + commission
 
     const data: UpdateLoanDto = {
       currentInterest,
@@ -55,12 +48,11 @@ export class LoanFactoryService {
       commissionsPaid,
     }
 
-    if (updateInstallmentDto.installmentStateId === INSTALLMENT_STATES.PAID) {
+    if (installment.installmentStateId === INSTALLMENT_STATES.PAID) {
       data.installmentsPaid = Number(loan.installmentsPaid) + 1
     }
-
-    if (updateInstallmentDto.capital > 0) {
-      data.debt = Number(loan.debt) - updateInstallmentDto.capital
+    if (installment.capital > 0) {
+      data.debt = Number(loan.debt) - installment.capital
     }
     if (data.debt === 0) data.loanStateId = LOAN_STATES.FINALIZED
     return data

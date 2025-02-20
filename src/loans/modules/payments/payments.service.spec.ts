@@ -3,21 +3,39 @@ import { PaymentsService } from './payments.service'
 
 import { InterestsService } from '../interests/interests.service'
 import { InstallmentsService } from '../installments/installments.service'
-import { PayOffDto } from 'src/loans/dtos/pay-off.dto'
-import { NotFoundException, UnprocessableEntityException } from '@nestjs/common'
-import { Loan } from 'src/loans/entities/loan.entity'
+
+import { UnprocessableEntityException } from '@nestjs/common'
 import { LoanManagementService } from '../loans-management/loans-management.service'
 import { AddPaymentDto } from './dtos/add-payment.dto'
 import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 import { InstallmentFactoryService } from '../installments/installment-factory.service'
 import { mockLoan } from '../../../../test/mocks/loans'
 import { mockInstallment } from '../../../../test/mocks/installments'
+import { CommissionsService } from 'src/employees/services/commissions.service'
+import { EmployeesService } from 'src/employees/services/employees.service'
+import { DataSource, EntityManager, QueryRunner } from 'typeorm'
+import { Installment } from 'src/loans/entities/installment.entity'
 
 const mockInstallmentService = {
   create: jest.fn(),
   findOne: jest.fn(),
   makePayment: jest.fn(),
   findUnpaidInstallments: jest.fn(),
+  calculateDaysLate: jest.fn(),
+}
+const commissionServiceMock = {
+  createCommissionData: jest.fn(),
+  transactionalCreate: jest.fn(),
+}
+
+const employeeServiceMock = {
+  findOne: jest.fn(),
+  transactionalUpdateBalance: jest.fn(),
+}
+
+const loanManagementServiceMock = {
+  findOne: jest.fn(),
+  updateLoanAfterPayment: jest.fn(),
 }
 
 describe('PaymentsService', () => {
@@ -26,18 +44,51 @@ describe('PaymentsService', () => {
   let interestService: InterestsService
   let installmentService: InstallmentsService
   let installmentFactoryService: InstallmentFactoryService
+  let commissionService: CommissionsService
+  let employeeService: EmployeesService
+  // mocks for transaction decorator
+  let dataSourceMock: Partial<DataSource>
+  let queryRunnerMock: Partial<QueryRunner>
+  let managerMock: Partial<EntityManager>
 
   beforeEach(async () => {
+    // 🔹 Mock del EntityManager
+    managerMock = {
+      create: jest.fn(),
+      save: jest.fn(),
+      findOne: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    } as unknown as EntityManager
+
+    // 🔹 Mock de QueryRunner
+    queryRunnerMock = {
+      connect: jest.fn(),
+      startTransaction: jest.fn(),
+      commitTransaction: jest.fn(),
+      rollbackTransaction: jest.fn(),
+      release: jest.fn(),
+      manager: managerMock,
+    } as unknown as QueryRunner
+
+    // 🔹 Mock de DataSource
+    dataSourceMock = {
+      createQueryRunner: jest.fn().mockReturnValue(queryRunnerMock),
+    }
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentsService,
-        { provide: LoanManagementService, useValue: { findOne: jest.fn() } },
+        { provide: LoanManagementService, useValue: loanManagementServiceMock },
         {
           provide: InterestsService,
           useValue: { findUnpaidInterests: jest.fn(), getInterestsAmount: jest.fn() },
         },
         { provide: InstallmentsService, useValue: mockInstallmentService },
         { provide: InstallmentFactoryService, useValue: { update: jest.fn() } },
+        { provide: CommissionsService, useValue: commissionServiceMock },
+        { provide: EmployeesService, useValue: employeeServiceMock },
+        { provide: DataSource, useValue: dataSourceMock },
       ],
     }).compile()
 
@@ -46,6 +97,8 @@ describe('PaymentsService', () => {
     interestService = module.get<InterestsService>(InterestsService)
     installmentService = module.get<InstallmentsService>(InstallmentsService)
     installmentFactoryService = module.get<InstallmentFactoryService>(InstallmentFactoryService)
+    commissionService = module.get<CommissionsService>(CommissionsService)
+    employeeService = module.get<EmployeesService>(EmployeesService)
   })
 
   it('should be defined', () => {
@@ -53,11 +106,19 @@ describe('PaymentsService', () => {
   })
 
   it('should make a payment to one installment, only interest', async () => {
+    jest.clearAllMocks()
     jest.spyOn(loanManagementService, 'findOne').mockResolvedValueOnce(mockLoan)
     jest.spyOn(installmentService, 'findOne').mockResolvedValueOnce(mockInstallment)
-    jest
-      .spyOn(installmentService, 'makePayment')
-      .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
+    jest.spyOn(installmentService, 'makePayment').mockResolvedValueOnce({} as Installment)
+    jest.spyOn(commissionService, 'createCommissionData').mockReturnValueOnce({
+      amount: 20000,
+      employeeId: 2,
+      installmentId: 3,
+      interestAmount: 200000,
+      rate: 30,
+      isPaid: false,
+    })
+    jest.spyOn(commissionService, 'transactionalCreate').mockResolvedValueOnce(20000)
 
     const paymentDto: AddPaymentDto = {
       loanId: mockLoan.id,
@@ -80,7 +141,7 @@ describe('PaymentsService', () => {
     jest.spyOn(installmentService, 'findOne').mockResolvedValueOnce(mockInstallment)
     const spy = jest
       .spyOn(installmentService, 'makePayment')
-      .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
+      .mockResolvedValueOnce({} as Installment)
     jest
       .spyOn(installmentService, 'findUnpaidInstallments')
       .mockResolvedValueOnce([overdueInstallment])
@@ -105,7 +166,7 @@ describe('PaymentsService', () => {
     jest.spyOn(installmentService, 'findOne').mockResolvedValueOnce(mockInstallment)
     const spy = jest
       .spyOn(installmentService, 'makePayment')
-      .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
+      .mockResolvedValueOnce({} as Installment)
     jest.spyOn(installmentService, 'findUnpaidInstallments').mockResolvedValueOnce([])
 
     const paymentDto: AddPaymentDto = {
@@ -126,9 +187,7 @@ describe('PaymentsService', () => {
 
     jest.spyOn(loanManagementService, 'findOne').mockResolvedValueOnce(mockLoan)
     jest.spyOn(installmentService, 'findOne').mockResolvedValueOnce(mockInstallment)
-    jest
-      .spyOn(installmentService, 'makePayment')
-      .mockResolvedValueOnce({ generatedMaps: [{}], raw: {} })
+    jest.spyOn(installmentService, 'makePayment').mockResolvedValueOnce({} as Installment)
 
     const paymentDto: AddPaymentDto = {
       loanId: mockLoan.id,

@@ -11,13 +11,14 @@ import { DatabaseSeeder } from 'src/database/database-seeder'
 import { authenticate } from 'test/helpers/login'
 import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 import { AddPaymentDto } from 'src/loans/modules/payments/dtos/add-payment.dto'
-import { PartialPaymentDto } from 'src/loans/modules/payments/dtos/partial-payment.dto'
+import { Commission } from 'src/employees/entities/commission.entity'
 
 describe('PaymentsController (e2e)', () => {
   let app: INestApplication
   let seeder: DatabaseSeeder
   let loanRepository: Repository<Loan>
   let installmentRepository: Repository<Installment>
+  let commissionRepository: Repository<Commission>
   let hostServer: string
   let accessToken: string
 
@@ -31,6 +32,7 @@ describe('PaymentsController (e2e)', () => {
     installmentRepository = moduleFixture.get<Repository<Installment>>(
       getRepositoryToken(Installment),
     )
+    commissionRepository = moduleFixture.get<Repository<Commission>>(getRepositoryToken(Commission))
 
     app = moduleFixture.createNestApplication()
     await app.init()
@@ -90,7 +92,7 @@ describe('PaymentsController (e2e)', () => {
     const data: AddPaymentDto = {
       loanId: loan.id,
       paymentMethodId: 1,
-      capital,
+      capital: capital,
       installmentId,
     }
 
@@ -138,17 +140,22 @@ describe('PaymentsController (e2e)', () => {
   })
 
   it('/payments (POST) - CREATE: ONLY CAPITAL NO PENDING INTEREST', async () => {
+    const deadline = new Date(new Date().setDate(new Date().getDate() + 1))
     const loan = await seeder.seedLoans()
-    const installmentRs = await seeder.seedInstallment(loan.id, INSTALLMENT_STATES.IN_PROGRESS)
+    const installmentRs = await seeder.seedInstallment(
+      loan.id,
+      INSTALLMENT_STATES.IN_PROGRESS,
+      deadline,
+    )
 
     if (!loan) throw new Error('Loan not found')
 
     const capital = 200_000
     const data: AddPaymentDto = {
       loanId: loan.id,
-      paymentMethodId: 1,
       capital,
       installmentId: null,
+      paymentMethodId: 1,
     }
 
     const response = await request(hostServer)
@@ -292,5 +299,133 @@ describe('PaymentsController (e2e)', () => {
       .expect(422)
 
     return response
+  })
+
+  describe('Commissions', () => {
+    it('/payments (POST) - CREATE: COMMISSION', async () => {
+      const loan = await seeder.seedLoans(2)
+      const installmentRs = await seeder.seedInstallment(
+        loan.id,
+        INSTALLMENT_STATES.AWAITING_PAYMENT,
+      )
+      const installmentId = installmentRs.raw.insertId
+      let installment = await installmentRepository.findOne({
+        where: { id: installmentId },
+      })
+
+      if (!loan) throw new Error('Loan not found')
+
+      const capital = 0
+      const data: AddPaymentDto = {
+        loanId: loan.id,
+        paymentMethodId: 1,
+        capital,
+        installmentId,
+      }
+
+      const response = await request(hostServer)
+        .post(`/payments`)
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send(data)
+        .expect(201)
+
+      const commission = await commissionRepository.findOne({
+        where: { installmentId },
+      })
+
+      installment = await installmentRepository.findOne({
+        where: { id: installmentId },
+      })
+
+      const expectedCommission = installment.interestPaid * 0.3
+      expect(Number(commission.amount)).toEqual(expectedCommission)
+      return response
+    })
+
+    it('/payments (POST) - DO NOT CREATE: COMMISSION', async () => {
+      const loan = await seeder.seedLoans(2)
+      const installmentRs = await seeder.seedInstallment(
+        loan.id,
+        INSTALLMENT_STATES.AWAITING_PAYMENT,
+      )
+      const installmentId = installmentRs.raw.insertId
+      let installment = await installmentRepository.findOne({
+        where: { id: installmentId },
+      })
+
+      if (!loan) throw new Error('Loan not found')
+
+      const capital = 0
+      const data: AddPaymentDto = {
+        loanId: loan.id,
+        paymentMethodId: 1,
+        capital,
+        installmentId,
+        customInterest: 50_000,
+      }
+
+      const response = await request(hostServer)
+        .post(`/payments`)
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send(data)
+        .expect(201)
+
+      const commission = await commissionRepository.findOne({
+        where: { installmentId },
+      })
+
+      installment = await installmentRepository.findOne({
+        where: { id: installmentId },
+      })
+
+      expect(commission).toBeNull()
+      return response
+    })
+
+    it('/payments (POST) - CREATE: COMMISSION WITH PREVIOUS INTEREST PAID', async () => {
+      const loan = await seeder.seedLoans(2)
+      const installmentRs = await seeder.seedInstallment(
+        loan.id,
+        INSTALLMENT_STATES.AWAITING_PAYMENT,
+        new Date(), // deadline
+        200_000, // interest
+      )
+      const installmentId = installmentRs.raw.insertId
+
+      const installment = await installmentRepository.findOne({
+        where: { id: installmentId },
+      })
+
+      if (!loan) throw new Error('Loan not found')
+
+      const capital = 0
+      const data: AddPaymentDto = {
+        loanId: loan.id,
+        paymentMethodId: 1,
+        capital,
+        installmentId,
+      }
+
+      await request(hostServer)
+        .post(`/payments`)
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send({ ...data, customInterest: 50_000 })
+        .expect(201)
+
+      const response = await request(hostServer)
+        .post(`/payments`)
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send({ ...data, customInterest: 150_000 })
+        .expect(201)
+
+      const commission = await commissionRepository.findOne({
+        where: { installmentId },
+      })
+
+      const expectedCommission = installment.interest * 0.3
+
+      expect(commission.amount).toEqual(expectedCommission)
+      return response
+    })
   })
 })

@@ -127,12 +127,7 @@ describe('JobInterestsService', () => {
       capital: 0,
       interest: dailyInterest,
       total: 0,
-    }
-
-    const dailyInterestData: CreateDailyInterestDto = {
-      installmentId: 1,
-      amount: dailyInterest,
-      date: new Date(),
+      interestPaid: 0,
     }
 
     const result = await jobInterestService.runDailyInterest()

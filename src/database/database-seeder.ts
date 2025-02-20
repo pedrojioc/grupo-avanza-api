@@ -45,10 +45,10 @@ export class DatabaseSeeder {
     const interest = await this.dataSource.getRepository(Interest).insert(interestData)
     return interest
   }
-  async seedLoans() {
+  async seedLoans(employeeId: number = 1) {
     const loanData: CreateLoanDto = {
       customerId: 5,
-      employeeId: 1,
+      employeeId,
       paymentPeriodId: PAYMENT_PERIODS.MONTHLY,
       amount: 5000000,
       debt: 5000000,
@@ -69,7 +69,12 @@ export class DatabaseSeeder {
     return await repo.save(loan)
   }
 
-  async seedInstallment(loanId: number, installmentStateId: number) {
+  async seedInstallment(
+    loanId: number,
+    installmentStateId: number,
+    paymentDeadline?: Date,
+    interest: number = 200000,
+  ) {
     const today = new Date()
     const startsOn = today.setMonth(today.getMonth() - 1)
     const installmentData: CreateInstallmentDto = {
@@ -77,15 +82,15 @@ export class DatabaseSeeder {
       installmentStateId,
       debt: 2000000,
       startsOn: new Date(startsOn),
-      paymentDeadline: today,
+      paymentDeadline: paymentDeadline || today,
       days: 30,
       capital: 0,
-      interest: 200000,
+      interest,
       total: 0,
       interestPaid: 0,
     }
 
-    const interest = await this.dataSource.getRepository(Installment).insert(installmentData)
-    return interest
+    const installment = await this.dataSource.getRepository(Installment).insert(installmentData)
+    return installment
   }
 }

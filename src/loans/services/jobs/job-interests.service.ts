@@ -1,7 +1,16 @@
 import { Injectable } from '@nestjs/common'
 import { Repository } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
-import { addDay, addMonth, diffDays, isEqual, monthDays, monthEnd, parse } from '@formkit/tempo'
+import {
+  addDay,
+  addMonth,
+  diffDays,
+  format,
+  isEqual,
+  monthDays,
+  monthEnd,
+  parse,
+} from '@formkit/tempo'
 import { INTEREST_STATE } from '../../constants/interests'
 import { Interest } from '../../entities/interest.entity'
 import { LOAN_STATES, PAYMENT_PERIODS } from 'src/loans/shared/constants'
@@ -109,15 +118,20 @@ export class JobInterestsService {
       console.log('Loan Id: ', loan.id)
       const dailyInterestAmount = this.getDailyInterest(loan.debt, loan.interestRate)
       let installment = await this.installmentService.getCurrentInstallment(loan.id, today)
-      console.log(installment)
+
       if (installment) {
         const daily = await this.dailyInterestService.findOneByDate(installment.id, today)
         console.log('Daily: ', daily)
         if (daily) continue
         console.log('Run daily for existing installment')
         const installmentValues = this.generateUpdateInterestDto(installment, dailyInterestAmount)
-        console.log(typeof installment.paymentDeadline, typeof today)
-        if (isEqual(installment.paymentDeadline, today)) {
+        if (installment.id === 349) {
+          console.log('Verifying if today is the deadline')
+          console.log(installment.paymentDeadline, today)
+          console.log(typeof installment.paymentDeadline, typeof today)
+        }
+        if (isEqual(installment.paymentDeadline, format(today, this.DATE_FORMAT))) {
+          console.log('Today is the deadline')
           installmentValues.installmentStateId = INSTALLMENT_STATES.AWAITING_PAYMENT
         }
         await this.installmentService.update(installment.id, installmentValues)
@@ -174,10 +188,14 @@ export class JobInterestsService {
     const loans = await this.loanManagementService.getLoansByState(LOAN_STATES.IN_PROGRESS)
     for (const loan of loans) {
       const installments = await this.installmentService.findUnpaidInstallments(loan.id)
-
+      if (loan.id === 28) console.log(installments)
       for (const installment of installments) {
         const daysLate = this.calculateDaysLate(loan.daysLate, installment.paymentDeadline, today)
-        if (installment.installmentStateId === INSTALLMENT_STATES.AWAITING_PAYMENT) {
+        const { installmentStateId } = installment
+        if (
+          installmentStateId === INSTALLMENT_STATES.AWAITING_PAYMENT ||
+          installmentStateId === INSTALLMENT_STATES.IN_PROGRESS
+        ) {
           await this.installmentService.update(installment.id, {
             installmentStateId: INSTALLMENT_STATES.OVERDUE,
           })

@@ -1,9 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing'
-
-import { Repository } from 'typeorm'
-import { Loan } from '../entities/loan.entity'
 import { getRepositoryToken } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+
+import { Loan } from '../entities/loan.entity'
 import { LoanManagementService } from '../modules/loans-management/loans-management.service'
+import { LoanFactoryService } from '../modules/loans-management/loan-factory.service'
+
+const mockLoanFactoryService = {}
 
 describe('LoanManagementService', () => {
   let service: LoanManagementService
@@ -14,6 +17,7 @@ describe('LoanManagementService', () => {
       providers: [
         LoanManagementService,
         { provide: getRepositoryToken(Loan), useClass: Repository },
+        { provide: LoanFactoryService, useValue: mockLoanFactoryService },
       ],
     }).compile()
 

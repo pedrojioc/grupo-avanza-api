@@ -3,19 +3,18 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToMany,
   ManyToOne,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
 
 import { Loan } from './loan.entity'
-import { PaymentMethod } from '../../payment-methods/entities/payment-method.entity'
 import { InstallmentState } from './installment-state.entity'
-import { Commission } from 'src/employees/entities/commission.entity'
 import { DailyInterest } from './daily-interest.entity'
 import { NumberColumnTransformer } from 'src/shared/transformers/number-column-transformer'
+import { Payment } from './payments.entity'
 
 @Entity({ name: 'installments' })
 export class Installment {
@@ -27,13 +26,6 @@ export class Installment {
   loan: Loan
   @Column({ name: 'loan_id' })
   loanId: number
-
-  @ManyToOne(() => PaymentMethod, { nullable: true, onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'payment_method_id' })
-  paymentMethod: PaymentMethod
-
-  @Column({ name: 'payment_method_id', nullable: true })
-  paymentMethodId: number
 
   @ManyToOne(() => InstallmentState, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'installment_state_id' })
@@ -60,6 +52,7 @@ export class Installment {
     scale: 2,
     default: 0,
     comment: 'Abono que se hace a la deuda capital',
+    transformer: new NumberColumnTransformer(),
   })
   capital: number
 
@@ -88,4 +81,7 @@ export class Installment {
 
   @OneToMany(() => DailyInterest, (dailyInterest) => dailyInterest.installment)
   dailyInterest: DailyInterest[]
+
+  @ManyToMany(() => Payment, (payment) => payment.installments)
+  payments: Payment[]
 }

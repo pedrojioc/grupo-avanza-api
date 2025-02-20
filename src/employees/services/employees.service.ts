@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Like, Repository } from 'typeorm'
+import { EntityManager, Like, Repository } from 'typeorm'
 
 import { Employee } from '../entities/employee.entity'
 import { CreateEmployeeDto } from '../dtos/create-employee.dto'
 import { PositionsService } from './positions.service'
 import { FilterEmployeesDto } from '../dtos/filter-employees.dto'
+import { EmployeeBalance } from '../entities/employee-balance.entity'
 
 @Injectable()
 export class EmployeesService {
@@ -35,5 +36,19 @@ export class EmployeesService {
     const employee = await this.repository.findOneBy({ id })
     if (!employee) throw new NotFoundException(`Employee ${id} not found`)
     return employee
+  }
+
+  async transactionalUpdateBalance(
+    manager: EntityManager,
+    employeeId: number,
+    commissionAmount: number,
+  ) {
+    const employeeBalance = await manager.findOneBy(EmployeeBalance, {
+      employeeId: employeeId,
+    })
+    const newBalance = Number(employeeBalance.balance) + commissionAmount
+    await manager.update(EmployeeBalance, { employeeId: employeeId }, { balance: newBalance })
+
+    return newBalance
   }
 }

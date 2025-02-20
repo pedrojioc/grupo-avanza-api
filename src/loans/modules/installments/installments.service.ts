@@ -21,6 +21,8 @@ import { FilterPaginator } from 'src/lib/filter-paginator'
 @Injectable()
 export class InstallmentsService {
   private DATE_FORMAT = 'YYYY-MM-DD'
+  private today = format(new Date(), this.DATE_FORMAT)
+
   constructor(
     @InjectRepository(Installment) private repository: Repository<Installment>,
     private dataSource: DataSource,
@@ -59,6 +61,11 @@ export class InstallmentsService {
     return result
   }
 
+  async transactionalCreate(manager: EntityManager, installmentDto: CreateInstallmentDto) {
+    const installment = manager.create(Installment, installmentDto)
+    return await manager.save(installment)
+  }
+
   async findOldestInstallment(loanId: number) {
     const installment = await this.repository
       .createQueryBuilder('installment')
@@ -93,7 +100,7 @@ export class InstallmentsService {
 
     if (!installment) return 0
 
-    const today = format(new Date(), this.DATE_FORMAT)
+    const today = this.today
     const deadline = format(installment.paymentDeadline, this.DATE_FORMAT)
     const daysLate = diffDays(today, deadline)
 
@@ -104,9 +111,11 @@ export class InstallmentsService {
     const query = this.repository
       .createQueryBuilder()
       .where('loan_id = :loanId', { loanId })
-      .andWhere('installment_state_id <> :paid AND installment_state_id <> :inProgress', {
-        paid: INSTALLMENT_STATES.PAID,
-        inProgress: INSTALLMENT_STATES.IN_PROGRESS,
+      .andWhere('installment_state_id <> :state', {
+        state: INSTALLMENT_STATES.PAID,
+      })
+      .andWhere(':today >= payment_deadline', {
+        today: this.today,
       })
 
     if (installmentId) query.andWhere('id <> :installmentId', { installmentId })
@@ -114,109 +123,15 @@ export class InstallmentsService {
     return query.getMany()
   }
 
-  private async updateLoan(manager: EntityManager, loanData: UpdateLoanDto, loanId: number) {
-    await manager
-      .createQueryBuilder()
-      .update(Loan)
-      .set(loanData)
-      .where('id = :loanId', { loanId })
-      .execute()
-  }
-
   async makePayment(
-    installment: Installment,
+    manager: EntityManager,
+    installmentId: number,
     updateInstallmentDto: UpdateInstallmentDto,
-    loan: Loan,
   ) {
-    const { id: installmentId } = installment
+    await manager.update(Installment, { id: installmentId }, updateInstallmentDto)
+    const i = await manager.findOneBy(Installment, { id: installmentId })
 
-    const queryRunner = this.dataSource.createQueryRunner()
-    await queryRunner.connect()
-    await queryRunner.startTransaction()
-
-    try {
-      const commissionBasis = updateInstallmentDto.interestPaymentAmount
-      const installmentData = this.repository.create(updateInstallmentDto)
-
-      // TODO: Actualizar el estado de la cuota y el total
-      const rs = await queryRunner.manager
-        .createQueryBuilder()
-        .update(Installment)
-        .set(installmentData)
-        .where('id = :id', { id: installmentId })
-        .execute()
-
-      // TODO: Agregar la comisión al asesor
-      let commissionAmount = 0
-      if (loan.employee.id !== 1) {
-        // ** Add commissions
-
-        const employeeId = Number(loan.employee.id)
-        commissionAmount = commissionBasis * 0.3
-        await queryRunner.manager.insert(Commission, {
-          employee: { id: employeeId },
-          installment: { id: installmentId },
-          interestAmount: updateInstallmentDto.interest,
-          amount: commissionAmount,
-          rate: 30,
-        })
-        const employeeBalance = await queryRunner.manager.findOneBy(EmployeeBalance, {
-          employeeId: employeeId,
-        })
-
-        await queryRunner.manager.update(
-          EmployeeBalance,
-          { employeeId: employeeId },
-          { balance: Number(employeeBalance.balance) + commissionAmount },
-        )
-      }
-
-      // TODO: Actualizar el currentInterest en loans y la deuda en caso de pago a capital, etc
-      const daysLate = await this.calculateDaysLate(loan.id)
-      const loanData = this.loanFactoryService.valuesAfterPayment(
-        loan,
-        updateInstallmentDto,
-        daysLate,
-        commissionAmount,
-      )
-      await this.updateLoan(queryRunner.manager, loanData, loan.id)
-
-      await queryRunner.commitTransaction()
-      return rs
-    } catch (error) {
-      await queryRunner.rollbackTransaction()
-      console.log(error)
-      throw new InternalServerErrorException(error)
-    } finally {
-      await queryRunner.release()
-    }
-  }
-
-  /*
-    Desc: This is responsible for making a capital payment, creating a fee and updating the loan. 
-  */
-  async makePaymentToCapital(installmentDto: CreateInstallmentDto, loan: Loan) {
-    const queryRunner = this.dataSource.createQueryRunner()
-
-    await queryRunner.connect()
-    await queryRunner.startTransaction()
-
-    try {
-      const rs = await queryRunner.manager.insert(Installment, installmentDto)
-      const installmentData: UpdateInstallmentDto = { ...installmentDto, interestPaymentAmount: 0 }
-      const loanData = this.loanFactoryService.valuesAfterPayment(loan, installmentData, 0, 0)
-
-      await this.updateLoan(queryRunner.manager, loanData, loan.id)
-
-      await queryRunner.commitTransaction()
-      return rs
-    } catch (error) {
-      await queryRunner.rollbackTransaction()
-      console.log(error)
-      throw new InternalServerErrorException(error)
-    } finally {
-      await queryRunner.release()
-    }
+    return i
   }
 
   async migrateInterestToInstallment() {

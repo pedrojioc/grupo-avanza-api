@@ -5,10 +5,6 @@ import { Type } from 'class-transformer'
 
 export class UpdateInstallmentDto extends PartialType(CreateInstallmentDto) {
   @IsPositive()
-  @IsOptional()
-  paymentMethodId?: number
-
-  @IsPositive()
   @Type(() => Number)
   @IsOptional()
   customInterest?: number

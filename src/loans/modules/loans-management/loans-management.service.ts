@@ -1,14 +1,19 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { EntityManager, Repository } from 'typeorm'
 
 import { Loan } from 'src/loans/entities/loan.entity'
 import { LoanStateValueTypes } from 'src/loans/shared/constants'
 import { UpdateLoanDto } from 'src/loans/dtos/loans.dto'
+import { LoanFactoryService } from './loan-factory.service'
+import { Installment } from 'src/loans/entities/installment.entity'
 
 @Injectable()
 export class LoanManagementService {
-  constructor(@InjectRepository(Loan) private repository: Repository<Loan>) {}
+  constructor(
+    @InjectRepository(Loan) private repository: Repository<Loan>,
+    private readonly loanFactoryService: LoanFactoryService,
+  ) {}
 
   findOne(id: number, relations?: string[]) {
     return this.repository.findOne({
@@ -43,5 +48,31 @@ export class LoanManagementService {
       .set(updateLoanDto)
       .where('id = :id', { id })
       .execute()
+  }
+
+  async transactionalUpdate(manager: EntityManager, id: number, updateLoanDto: UpdateLoanDto) {
+    return await manager
+      .createQueryBuilder()
+      .update(Loan)
+      .set(updateLoanDto)
+      .where('id = :id', { id })
+      .execute()
+  }
+
+  async updateLoanAfterPayment(
+    manager: EntityManager,
+    loan: Loan,
+    installment: Installment,
+    daysLate: number,
+    commission: number,
+  ) {
+    const loanData = this.loanFactoryService.valuesAfterPayment(
+      loan,
+      installment,
+      daysLate,
+      commission,
+    )
+
+    return await this.transactionalUpdate(manager, loan.id, loanData)
   }
 }

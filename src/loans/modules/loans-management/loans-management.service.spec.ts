@@ -3,6 +3,7 @@ import { LoanManagementService } from './loans-management.service'
 import { Loan } from 'src/loans/entities/loan.entity'
 import { Repository } from 'typeorm'
 import { getRepositoryToken } from '@nestjs/typeorm'
+import { LoanFactoryService } from './loan-factory.service'
 
 describe('LoansManagementService', () => {
   let service: LoanManagementService
@@ -13,6 +14,7 @@ describe('LoansManagementService', () => {
       providers: [
         LoanManagementService,
         { provide: getRepositoryToken(Loan), useClass: Repository },
+        { provide: LoanFactoryService, useValue: {} },
       ],
     }).compile()
 

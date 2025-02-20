@@ -11,6 +11,7 @@ import {
 
 import { Installment } from 'src/loans/entities/installment.entity'
 import { Employee } from './employee.entity'
+import { NumberColumnTransformer } from 'src/shared/transformers/number-column-transformer'
 
 @Entity({ name: 'commissions' })
 export class Commission {
@@ -28,10 +29,19 @@ export class Commission {
   @JoinColumn({ name: 'installment_id' })
   installment: Installment
 
-  @Column({ name: 'interest_amount', type: 'decimal', precision: 15, scale: 2 })
+  @Column({ name: 'installment_id' })
+  installmentId: number
+
+  @Column({
+    name: 'interest_amount',
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: new NumberColumnTransformer(),
+  })
   interestAmount: number
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({ type: 'decimal', precision: 15, scale: 2, transformer: new NumberColumnTransformer() })
   amount: number
 
   @Column({ type: 'int' })
