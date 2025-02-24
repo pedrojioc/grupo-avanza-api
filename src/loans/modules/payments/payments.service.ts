@@ -34,6 +34,8 @@ export class PaymentsService {
       .relation(Payment, 'installments')
       .of(rs.raw.insertId)
       .add(createPaymentDto.installmentIds)
+
+    return true
   }
 
   // ! SE DEBE VALIDAR CUANDO EL CAPITAL SEA MAYOR A 0 QUE NO EXISTAN CUOTAS ATRASADAS O PENDIENTES, DIFERENTE A LA CUOTA QUE SE ESTA PAGANDO
@@ -62,6 +64,7 @@ export class PaymentsService {
 
       let installment = await this.installmentService.findOne(paymentDto.installmentId)
       const installmentDataUpd = this.installmentFactoryService.update(installment, paymentDto)
+      const interestPayable = installmentDataUpd.interestPaid - installment.interestPaid
 
       installment = await this.installmentService.makePayment(
         manager,
@@ -83,12 +86,13 @@ export class PaymentsService {
       }
 
       // ? Calcular los días de atraso
-      const daysLate = await this.installmentService.calculateDaysLate(loan.id)
+      const daysLate = await this.installmentService.calculateDaysLate(loan.id, manager)
       // ? Actualizar los datos del préstamo
       await this.loanManagementService.updateLoanAfterPayment(
         manager,
         loan,
         installment,
+        interestPayable,
         daysLate,
         commissionAmount,
       )
@@ -130,7 +134,7 @@ export class PaymentsService {
       total: capital,
     }
     const installment = await this.installmentService.transactionalCreate(manager, installmentDto)
-    await this.loanManagementService.updateLoanAfterPayment(manager, loan, installment, 0, 0)
+    await this.loanManagementService.updateLoanAfterPayment(manager, loan, installment, 0, 0, 0)
 
     // ? Crear el pago
     await this.transactionalCreate(manager, {

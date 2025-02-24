@@ -6,6 +6,8 @@ import { Employee } from 'src/employees/entities/employee.entity'
 import { Customer } from 'src/customers/entities/customer.entity'
 import { LOAN_STATES } from '../../shared/constants'
 import { Loan } from '../../entities/loan.entity'
+import { mockLoan } from '../../../../test/mocks/loans'
+import { mockInstallment } from '../../../../test/mocks/installments'
 
 describe('LoanFactoryService', () => {
   let service: LoanFactoryService
@@ -52,5 +54,26 @@ describe('LoanFactoryService', () => {
     expect(loan.loanState).toEqual({ id: loanDto.loanStateId })
     expect(loan.debt).toBe(loanDto.amount)
     expect(loan.installmentsPaid).toBeUndefined()
+  })
+
+  it('should calculate the sum of the interest already paid with the interest of the new payment', () => {
+    const loan = mockLoan
+    const installment = mockInstallment
+    const daysLate = 2
+    const commission = 10000
+    const interestToPay = 100_000
+
+    loan.totalInterestPaid = 100000
+    installment.interestPaid = 200000
+
+    const dataFactory = service.valuesAfterPayment(
+      loan,
+      installment,
+      interestToPay,
+      daysLate,
+      commission,
+    )
+
+    expect(dataFactory.totalInterestPaid).toEqual(interestToPay + loan.totalInterestPaid)
   })
 })

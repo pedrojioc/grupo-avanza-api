@@ -8,5 +8,6 @@
   },
 
   "moduleDirectories": ["<rootDir>/../", "node_modules"],
-  "globalTeardown": "<rootDir>/teardown.ts"
+  "globalTeardown": "<rootDir>/teardown.ts",
+  "setupFilesAfterEnv": ["dotenv/config"]
 }

@@ -61,20 +61,25 @@ export class InstallmentsService {
     return result
   }
 
+  async bulkUpdate(installmentIds: number[], updateInstallmentDto: UpdateInstallmentDto) {
+    await this.repository
+      .createQueryBuilder()
+      .update(Installment)
+      .set(updateInstallmentDto)
+      .whereInIds(installmentIds)
+      .execute()
+  }
+
   async transactionalCreate(manager: EntityManager, installmentDto: CreateInstallmentDto) {
     const installment = manager.create(Installment, installmentDto)
     return await manager.save(installment)
   }
 
-  async findOldestInstallment(loanId: number) {
-    const installment = await this.repository
-      .createQueryBuilder('installment')
-      .where('loan_id = :loanId AND installment_state_id = :installmentStateId', {
-        loanId,
-        installmentStateId: INSTALLMENT_STATES.OVERDUE,
-      })
-      .orderBy('payment_deadline', 'ASC')
-      .getOne()
+  private async findOldestInstallment(manager: EntityManager, loanId: number) {
+    const installment = await manager.findOne(Installment, {
+      where: { loanId, installmentStateId: INSTALLMENT_STATES.OVERDUE },
+      order: { paymentDeadline: 'ASC' },
+    })
 
     return installment
   }
@@ -95,8 +100,8 @@ export class InstallmentsService {
     return installment
   }
 
-  async calculateDaysLate(loanId: number) {
-    const installment = await this.findOldestInstallment(loanId)
+  async calculateDaysLate(loanId: number, manager: EntityManager) {
+    const installment = await this.findOldestInstallment(manager, loanId)
 
     if (!installment) return 0
 
@@ -121,6 +126,19 @@ export class InstallmentsService {
     if (installmentId) query.andWhere('id <> :installmentId', { installmentId })
 
     return query.getMany()
+  }
+
+  async getAmountOfInterestInArrears(loanId: number) {
+    const { amount } = await this.repository
+      .createQueryBuilder()
+      .select('SUM(interest)', 'amount')
+      .where('loan_id = :loanId', { loanId })
+      .andWhere('installment_state_id = :state', {
+        state: INSTALLMENT_STATES.OVERDUE,
+      })
+      .getRawOne()
+
+    return amount
   }
 
   async makePayment(

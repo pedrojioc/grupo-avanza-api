@@ -17,8 +17,13 @@ export class NotificationsController {
       })
         .format(200000)
         .replace(/(\.|,)00$/g, ''),
-      phone: '313',
+      to: '313',
     }
     return this.whatsAppService.sendMessage(data)
+  }
+
+  @Post('run/whatsapp')
+  sendWhatsAppToAll() {
+    return this.whatsAppService.runNotifications()
   }
 }

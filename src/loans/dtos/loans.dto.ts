@@ -71,4 +71,8 @@ export class CreateLoanDto {
   loanStateId: number
 }
 
-export class UpdateLoanDto extends PartialType(CreateLoanDto) {}
+export class UpdateLoanDto extends PartialType(CreateLoanDto) {
+  @IsDateString({ strict: false })
+  @IsOptional()
+  lastNotificationSent?: Date
+}

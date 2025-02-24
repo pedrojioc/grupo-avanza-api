@@ -141,11 +141,10 @@ describe('JobInterestsService', () => {
   })
 
   it('should calculate the days of delay of a loan', () => {
-    const deadline = parse(new Date('2024-10-06').toISOString(), FORMAT_DATE)
-    const today = parse(new Date('2024-10-17').toISOString(), FORMAT_DATE)
-    const CURRENT_DAYS_LATE = 10
-    const daysLate = jobInterestService.calculateDaysLate(CURRENT_DAYS_LATE, deadline, today)
+    const deadline = parse(new Date('2024-12-16').toISOString(), FORMAT_DATE)
+    const today = parse(new Date().toISOString(), FORMAT_DATE)
+    const daysLate = jobInterestService.calculateDaysLate(deadline, today)
 
-    expect(daysLate).toEqual(11)
+    expect(daysLate).toEqual(69)
   })
 })

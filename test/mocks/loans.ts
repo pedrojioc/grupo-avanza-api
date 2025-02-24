@@ -33,6 +33,9 @@ export const mockLoan: Loan = {
   createdAt: new Date(),
   updatedAt: new Date(),
   paymentPeriodId: 1,
+  isNotificationsPaused: true,
+  pauseNotificationsUntil: null,
+  lastNotificationSent: null,
 }
 
 const mockLoans = new Array(10).map((i) => ({ ...mockLoan, id: i + 1 }))

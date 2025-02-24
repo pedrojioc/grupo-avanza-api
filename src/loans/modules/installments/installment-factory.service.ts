@@ -14,7 +14,7 @@ export class InstallmentFactoryService {
       )
     }
 
-    let interestPaid: number = installment.interest
+    let interestPaid = installment.interest
     if (addPaymentDto.customInterest) {
       interestPaid = installment.interestPaid + addPaymentDto.customInterest
     }

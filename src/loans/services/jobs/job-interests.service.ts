@@ -174,34 +174,39 @@ export class JobInterestsService {
       .getMany()
   }
 
-  calculateDaysLate(currentDaysLate: number, deadline: Date, today: Date) {
-    currentDaysLate = Number(currentDaysLate)
-    const differenceInDays = diffDays(today, deadline)
-
-    if (currentDaysLate > differenceInDays) return currentDaysLate
-    return differenceInDays
+  calculateDaysLate(deadline: Date, today: Date) {
+    return diffDays(today, deadline)
   }
 
   async checkOverduePayments() {
     const today = this.TODAY
+    const overdueStates = {
+      [INSTALLMENT_STATES.AWAITING_PAYMENT]: true,
+      [INSTALLMENT_STATES.IN_PROGRESS]: true,
+    }
 
     const loans = await this.loanManagementService.getLoansByState(LOAN_STATES.IN_PROGRESS)
     for (const loan of loans) {
       const installments = await this.installmentService.findUnpaidInstallments(loan.id)
-      if (loan.id === 28) console.log(installments)
+      if (loan.id !== 16) continue
+
+      const overdueInstallmentIds = []
+      const pastDuesOfInstallments = [0]
       for (const installment of installments) {
-        const daysLate = this.calculateDaysLate(loan.daysLate, installment.paymentDeadline, today)
         const { installmentStateId } = installment
-        if (
-          installmentStateId === INSTALLMENT_STATES.AWAITING_PAYMENT ||
-          installmentStateId === INSTALLMENT_STATES.IN_PROGRESS
-        ) {
-          await this.installmentService.update(installment.id, {
-            installmentStateId: INSTALLMENT_STATES.OVERDUE,
-          })
-        }
-        await this.loanManagementService.rawUpdate(loan.id, { daysLate })
+        // Check and store if the installment state needs to be updated
+        if (overdueStates[installmentStateId]) overdueInstallmentIds.push(installment.id)
+
+        // Calcula y almacena los días en mora de cada cuota
+        const days = this.calculateDaysLate(installment.paymentDeadline, today)
+        pastDuesOfInstallments.push(days)
       }
+      const daysLate = Math.max(...pastDuesOfInstallments)
+
+      await this.loanManagementService.rawUpdate(loan.id, { daysLate })
+      await this.installmentService.bulkUpdate(pastDuesOfInstallments, {
+        installmentStateId: INSTALLMENT_STATES.OVERDUE,
+      })
     }
 
     return true

@@ -33,13 +33,17 @@ export class LoanFactoryService {
     return loan
   }
 
-  valuesAfterPayment(loan: Loan, installment: Installment, daysLate: number, commission: number) {
-    const interestToPay = installment.interestPaid
-
-    const newCurrentInterest = Number(loan.currentInterest) - interestToPay
+  valuesAfterPayment(
+    loan: Loan,
+    installment: Installment,
+    interestPayable: number,
+    daysLate: number,
+    commission: number,
+  ) {
+    const newCurrentInterest = loan.currentInterest - interestPayable
     const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
-    const totalInterestPaid = Number(loan.totalInterestPaid) + interestToPay
-    const commissionsPaid = Number(loan.commissionsPaid) + commission
+    const totalInterestPaid = loan.totalInterestPaid + interestPayable
+    const commissionsPaid = loan.commissionsPaid + commission
 
     const data: UpdateLoanDto = {
       currentInterest,

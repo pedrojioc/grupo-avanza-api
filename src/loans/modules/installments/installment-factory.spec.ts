@@ -32,7 +32,6 @@ describe('InstallmentFactoryService', () => {
 
     expect(data.interestPaid).toEqual(installment.interest)
     expect(data.installmentStateId).toEqual(INSTALLMENT_STATES.PAID)
-    expect(data.interestPaymentAmount).toEqual(installment.interest)
   })
 
   it('should add the new payment to the existing partial payment and mark it as payment', () => {
@@ -53,7 +52,6 @@ describe('InstallmentFactoryService', () => {
 
     expect(data.interestPaid).toBeGreaterThanOrEqual(installment.interest)
     expect(data.installmentStateId).toEqual(INSTALLMENT_STATES.PAID)
-    expect(data.interestPaymentAmount).toEqual(interestToPay)
   })
 
   it('should not change status when payment is not complete', () => {
@@ -74,7 +72,6 @@ describe('InstallmentFactoryService', () => {
 
     expect(data.interestPaid).toEqual(installment.interestPaid + interestToPay)
     expect(data.installmentStateId).toEqual(undefined)
-    expect(data.interestPaymentAmount).toEqual(interestToPay)
   })
 
   it('should throw an error when the payment does not match', () => {

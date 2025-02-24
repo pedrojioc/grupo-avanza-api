@@ -14,5 +14,5 @@ export class WhatsAppForDelayDto {
 
   @IsString()
   @IsNotEmpty()
-  readonly phone: string
+  readonly to: string
 }

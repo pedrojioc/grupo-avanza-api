@@ -72,11 +72,11 @@ export class LoansService {
       })
     }
 
-    if (params.interestState) {
+    if (params.installmentState) {
       loans
-        .innerJoin('interests', 'i', 'loans.id = i.loan_id')
-        .where('i.interest_state_id = :interestStateId', {
-          interestStateId: params.interestState,
+        .innerJoin('installments', 'i', 'loans.id = i.loan_id')
+        .where('i.installment_state_id = :installmentStateId', {
+          installmentStateId: params.installmentState,
         })
         .andWhere('loan_state_id = :loanState', { loanState: params.state })
     } else {
