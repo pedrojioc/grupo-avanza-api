@@ -116,9 +116,7 @@ export class WhatsAppService {
       const rs = await this.loanManagementService.rawUpdate(loan.id, {
         lastNotificationSent: today,
       })
-      console.log(rs)
       response.push(result)
-      break
     }
 
     return response
