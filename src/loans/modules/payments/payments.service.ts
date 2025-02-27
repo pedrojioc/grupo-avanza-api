@@ -15,6 +15,7 @@ import { DataSource, EntityManager } from 'typeorm'
 import { EmployeesService } from 'src/employees/services/employees.service'
 import { Payment } from 'src/loans/entities/payments.entity'
 import { CreatePaymentDto } from './dtos/create-payment.dto'
+import { AddCapitalPaymentDto } from './dtos/add-capital-payment.dto'
 
 @Injectable()
 export class PaymentsService {
@@ -43,14 +44,16 @@ export class PaymentsService {
     const loan = await this.loanManagementService.findOne(paymentDto.loanId, ['employee'])
 
     if (paymentDto.capital > 0) {
-      if (!paymentDto.installmentId) {
-        return await this.paymentToCapital(paymentDto, loan)
-      }
       await this.validatePaymentToCapital(loan.id, paymentDto.installmentId)
     } else if (paymentDto.capital === 0 && !paymentDto.installmentId) {
       throw new UnprocessableEntityException('Los pagos deben ser mayor a 0')
     }
     return await this.processInstallmentPayment(paymentDto, loan)
+  }
+
+  async capitalPayment(paymentDto: AddCapitalPaymentDto) {
+    const loan = await this.loanManagementService.findOne(paymentDto.loanId, ['employee'])
+    return await this.processCapitalPayment(paymentDto, loan)
   }
 
   @Transactional()
@@ -115,7 +118,11 @@ export class PaymentsService {
   }
 
   @Transactional()
-  async paymentToCapital(paymentDto: AddPaymentDto, loan: Loan, manager?: EntityManager) {
+  async processCapitalPayment(
+    paymentDto: AddCapitalPaymentDto,
+    loan: Loan,
+    manager?: EntityManager,
+  ) {
     await this.validatePaymentToCapital(loan.id)
 
     const { capital } = paymentDto
