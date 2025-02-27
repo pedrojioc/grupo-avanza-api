@@ -6,17 +6,12 @@ import { diffDays, format } from '@formkit/tempo'
 import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 import { CreateInstallmentDto } from 'src/loans/dtos/create-installment.dto'
 import { UpdateInstallmentDto } from 'src/loans/dtos/update-installment.dto'
-import { Loan } from 'src/loans/entities/loan.entity'
 import { Installment } from 'src/loans/entities/installment.entity'
-import { Commission } from 'src/employees/entities/commission.entity'
-import { EmployeeBalance } from 'src/employees/entities/employee-balance.entity'
-import { LoanFactoryService } from 'src/loans/modules/loans-management/loan-factory.service'
 import { Interest } from 'src/loans/entities/interest.entity'
 import { INTEREST_STATE } from 'src/loans/constants/interests'
-import { UpdateLoanDto } from 'src/loans/dtos/loans.dto'
 import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginator.dto'
-import { InstallmentState } from 'src/loans/entities/installment-state.entity'
 import { FilterPaginator } from 'src/lib/filter-paginator'
+import { InstallmentState } from 'src/loans/entities/installment-state.entity'
 
 @Injectable()
 export class InstallmentsService {
@@ -26,7 +21,6 @@ export class InstallmentsService {
   constructor(
     @InjectRepository(Installment) private repository: Repository<Installment>,
     private dataSource: DataSource,
-    private loanFactoryService: LoanFactoryService,
   ) {}
 
   create(installmentDto: CreateInstallmentDto) {
@@ -152,34 +146,7 @@ export class InstallmentsService {
     return i
   }
 
-  async migrateInterestToInstallment() {
-    const interestRepository = this.dataSource.getRepository(Interest)
-    const interests = await interestRepository
-      .createQueryBuilder('interests')
-      .where('interest_state_id <> :paid', {
-        paid: INTEREST_STATE.PAID,
-      })
-      .orderBy('deadline', 'ASC')
-      .getMany()
-
-    for (const interest of interests) {
-      const installmentData: CreateInstallmentDto = {
-        loanId: interest.loanId,
-        installmentStateId: interest.interestStateId,
-        debt: interest.capital,
-        startsOn: interest.startAt,
-        paymentDeadline: interest.deadline,
-        days: interest.days,
-        capital: 0,
-        interest: interest.amount,
-        total: 0,
-        interestPaid: 0,
-      }
-
-      const rs = await this.create(installmentData)
-      console.log('Cuota creada: ', rs.id)
-    }
-
-    console.log('Tarea finalizada!')
+  getStates() {
+    return this.dataSource.manager.find(InstallmentState)
   }
 }

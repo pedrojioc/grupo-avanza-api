@@ -15,6 +15,11 @@ export class CreateInstallmentDto {
   debt: number
 
   @IsDate()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return parse(value, 'YYYY-MM-DD')
+
+    return value
+  })
   startsOn: Date
 
   @IsDate()

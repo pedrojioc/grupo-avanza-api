@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer'
-import { IsArray, IsDateString, IsNumber, IsOptional, IsPositive } from 'class-validator'
+import { IsDateString, IsNumber, IsOptional, IsPositive } from 'class-validator'
 
 export class AddPaymentDto {
   @IsPositive()
