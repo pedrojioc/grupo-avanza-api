@@ -39,13 +39,16 @@ export class PaymentsService {
     return true
   }
 
-  // ! SE DEBE VALIDAR CUANDO EL CAPITAL SEA MAYOR A 0 QUE NO EXISTAN CUOTAS ATRASADAS O PENDIENTES, DIFERENTE A LA CUOTA QUE SE ESTA PAGANDO
   async addPayment(paymentDto: AddPaymentDto) {
     const loan = await this.loanManagementService.findOne(paymentDto.loanId, ['employee'])
 
+    /*
+    Se deshabilita temporalmente la validación de cuotas atrasadas
     if (paymentDto.capital > 0) {
       await this.validatePaymentToCapital(loan.id, paymentDto.installmentId)
-    } else if (paymentDto.capital === 0 && !paymentDto.installmentId) {
+    }
+    */
+    if (paymentDto.capital === 0 && !paymentDto.installmentId) {
       throw new UnprocessableEntityException('Los pagos deben ser mayor a 0')
     }
     return await this.processInstallmentPayment(paymentDto, loan)
@@ -123,7 +126,10 @@ export class PaymentsService {
     loan: Loan,
     manager?: EntityManager,
   ) {
+    /*
+    Se deshabilita temporalmente la validación de cuotas atrasadas
     await this.validatePaymentToCapital(loan.id)
+    */
 
     const { capital } = paymentDto
     const today = new Date()
