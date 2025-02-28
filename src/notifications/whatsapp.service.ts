@@ -13,6 +13,7 @@ import { InstallmentsService } from 'src/loans/modules/installments/installments
 @Injectable()
 export class WhatsAppService {
   SUPPORT_NUMBER: string
+  SUPERVISOR_NUMBER: string
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
@@ -20,12 +21,13 @@ export class WhatsAppService {
     private readonly installmentsService: InstallmentsService,
   ) {
     this.SUPPORT_NUMBER = this.configService.get('SUPPORT_NUMBER')
+    this.SUPERVISOR_NUMBER = this.configService.get('SUPERVISOR_NUMBER')
   }
 
   async sendMessage(messageData: WhatsAppForDelayDto) {
     const body = JSON.stringify({
       messaging_product: 'whatsapp',
-      to: '573135948595',
+      to: `57${messageData.to}`,
       type: 'template',
       template: {
         name: 'pago_atrasado',
@@ -116,6 +118,7 @@ export class WhatsAppService {
       const rs = await this.loanManagementService.rawUpdate(loan.id, {
         lastNotificationSent: today,
       })
+      await this.sendMessage({ ...data, to: this.SUPERVISOR_NUMBER })
       response.push(result)
     }
 

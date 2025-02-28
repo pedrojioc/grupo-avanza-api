@@ -7,6 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule)
   const whatsAppService = app.select(NotificationsModule).get(WhatsAppService, { strict: true })
   await whatsAppService.runNotifications()
+  console.log('Done :)')
   await app.close()
 }
 

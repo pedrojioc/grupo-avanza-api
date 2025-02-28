@@ -34,7 +34,8 @@
     "job:pendingInterest": "ts-node ./src/loans/jobs/fill-current-interest.ts",
     "job:pendingInterest:prod": "node ./dist/src/loans/jobs/fill-current-interest.js",
     "job:migrateToInstallments": "ts-node ./src/loans/jobs/migrate-to-daily-interest.ts",
-    "job:migrateToInstallments:prod": "node ./dist/src/loans/jobs/migrate-to-daily-interest.js"
+    "job:migrateToInstallments:prod": "node ./dist/src/loans/jobs/migrate-to-daily-interest.js",
+    "job:overdue-notifier": "node ./dist/src/loans/jobs/whatsapp-notifier.js"
   },
   "dependencies": {
     "@formkit/tempo": "^0.1.1",
