@@ -16,6 +16,8 @@ import { EmployeesService } from 'src/employees/services/employees.service'
 import { Payment } from 'src/loans/entities/payments.entity'
 import { CreatePaymentDto } from './dtos/create-payment.dto'
 import { AddCapitalPaymentDto } from './dtos/add-capital-payment.dto'
+import { FilterPaymentsDto } from './dtos/filter-payments.dto'
+import { MarkPaymentAsReceived } from './dtos/bulk-received.dto'
 
 @Injectable()
 export class PaymentsService {
@@ -27,6 +29,52 @@ export class PaymentsService {
     private employeeService: EmployeesService,
     private dataSource: DataSource,
   ) {}
+
+  async summary(params: FilterPaymentsDto) {
+    const { isReceived, employeeId } = params
+    const query = this.dataSource
+      .createQueryBuilder(Payment, 'payments')
+      .select(
+        'SUM(payments.capital) AS capital, SUM(payments.interest) AS interest, SUM(payments.total) AS total',
+      )
+      .leftJoin('payments.installment', 'installment')
+      .leftJoin('installment.loan', 'loan')
+      .leftJoin('loan.customer', 'customer')
+      .leftJoin('loan.employee', 'employee')
+      .where('payments.is_received = :isReceived', { isReceived })
+
+    if (employeeId) query.andWhere('loan.employee_id = :employeeId', { employeeId })
+    console.log(query.getSql())
+    const rs = await query.getRawOne()
+    return rs
+  }
+
+  async findAll(params: FilterPaymentsDto) {
+    const { isReceived, employeeId } = params
+    // ? Query base
+    const payments = this.dataSource
+      .createQueryBuilder(Payment, 'payments')
+      .leftJoinAndSelect('payments.installment', 'installment')
+      .leftJoinAndSelect('installment.loan', 'loan')
+      .leftJoinAndSelect('loan.customer', 'customer')
+      .leftJoinAndSelect('loan.employee', 'employee')
+      .where('payments.is_received = :isReceived', { isReceived })
+
+    if (employeeId) payments.andWhere('loan.employee_id = :employeeId', { employeeId })
+
+    payments
+      .take(params.itemsPerPage)
+      .skip(params.itemsPerPage * (params.page - 1))
+      .orderBy('payments.id', 'ASC')
+
+    const [data, counter] = await payments.getManyAndCount()
+    return {
+      data,
+      total: counter,
+      currentPage: params.page,
+      itemsPerPage: params.itemsPerPage,
+    }
+  }
 
   async transactionalCreate(manager: EntityManager, createPaymentDto: CreatePaymentDto) {
     const rs = await manager.insert(Payment, createPaymentDto)
@@ -172,6 +220,15 @@ export class PaymentsService {
       const installmentUpdate = this.installmentFactoryService.update(installment, addPaymentDto)
       // await this.processInstallmentPayment(installment, installmentUpdate, loan)
     }
+  }
+
+  async markAsReceived(markDto: MarkPaymentAsReceived) {
+    await this.dataSource
+      .createQueryBuilder()
+      .update(Payment)
+      .set({ isReceived: 1 })
+      .whereInIds(markDto.paymentIds)
+      .execute()
   }
 
   private async hasUnpaidInstallments(loanId: number, installmentId?: number): Promise<Boolean> {
