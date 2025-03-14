@@ -44,7 +44,7 @@ export class PaymentsService {
       .where('payments.is_received = :isReceived', { isReceived })
 
     if (employeeId) query.andWhere('loan.employee_id = :employeeId', { employeeId })
-    console.log(query.getSql())
+
     const rs = await query.getRawOne()
     return rs
   }
