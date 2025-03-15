@@ -9,15 +9,18 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
   imports: [
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        token: configService.get('TELEGRAM_BOT_TOKEN'),
-        launchOptions: {
-          webhook: {
-            domain: configService.get('APP_DOMAIN'),
-            path: configService.get('TELEGRAM_HOOK_PATH'),
+      useFactory: (configService: ConfigService) => {
+        console.log('Bot Token: ', configService.get('TELEGRAM_BOT_TOKEN'))
+        return {
+          token: configService.get('TELEGRAM_BOT_TOKEN'),
+          launchOptions: {
+            webhook: {
+              domain: configService.get('APP_DOMAIN'),
+              path: configService.get('TELEGRAM_HOOK_PATH'),
+            },
           },
-        },
-      }),
+        }
+      },
       inject: [ConfigService],
     }),
     UsersModule,

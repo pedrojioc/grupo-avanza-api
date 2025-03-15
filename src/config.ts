@@ -15,5 +15,4 @@ export default registerAs('config', () => ({
   jwtSecret: process.env.JWT_SECRET,
   KEY: 'asd',
   whatsAppToken: process.env.WHATSAPP_TOKEN,
-  TELEGRAM_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
 }))
