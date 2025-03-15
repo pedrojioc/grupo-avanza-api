@@ -16,6 +16,7 @@ import config from './config'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module'
 import { NotificationsModule } from './notifications/notifications.module'
+import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { NotificationsModule } from './notifications/notifications.module'
     MenuModule,
     PaymentMethodsModule,
     NotificationsModule,
+    TelegramBotModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: 'APP_GUARD', useClass: JwtAuthGuard }],

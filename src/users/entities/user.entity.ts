@@ -33,6 +33,15 @@ export class User {
   @Column()
   password: string
 
+  @Column({ type: 'int', nullable: true })
+  chatId?: number
+
+  @Column({ name: 'verification_code', type: 'varchar', nullable: true })
+  verificationCode?: string
+
+  @Column({ type: 'timestamp', nullable: true })
+  verificationCodeExpires?: Date
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 

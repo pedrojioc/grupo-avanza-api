@@ -40,7 +40,7 @@ export class UsersService {
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`
+    return this.repository.update(id, updateUserDto)
   }
 
   remove(id: number) {
@@ -49,7 +49,11 @@ export class UsersService {
 
   async findByUsername(username: string) {
     const user = await this.repository.findOne({ where: { username }, relations: ['role'] })
-    if (!user) throw new NotFoundException(`User ${username} not found`)
+    return user
+  }
+
+  async findUserByChatId(chatId: number) {
+    const user = await this.repository.findOne({ where: { chatId } })
     return user
   }
 }
