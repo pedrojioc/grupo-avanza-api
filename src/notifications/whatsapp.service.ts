@@ -97,7 +97,7 @@ export class WhatsAppService {
 
   async runNotifications() {
     const today = new Date()
-    const loans = await this.loanManagementService.getLoansInDefault()
+    const loans = await this.loanManagementService.getLoansInDefault(['customer'])
     const response = []
     for (const loan of loans) {
       const { daysLate } = loan
@@ -115,10 +115,10 @@ export class WhatsAppService {
       }
 
       const result = await this.sendMessage(data)
-      const rs = await this.loanManagementService.rawUpdate(loan.id, {
+      await this.loanManagementService.rawUpdate(loan.id, {
         lastNotificationSent: today,
       })
-      await this.sendMessage({ ...data, to: this.SUPERVISOR_NUMBER })
+
       response.push(result)
     }
 

@@ -41,10 +41,10 @@ export class LoanManagementService {
       .getMany()
   }
 
-  getLoansInDefault() {
+  getLoansInDefault(relations: string[] | object) {
     return this.repository.find({
       where: { loanStateId: LOAN_STATES.IN_PROGRESS, daysLate: MoreThan(0) },
-      relations: ['customer'],
+      relations: relations,
     })
   }
 
