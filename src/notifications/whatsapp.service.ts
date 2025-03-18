@@ -9,6 +9,7 @@ import { LoanManagementService } from 'src/loans/modules/loans-management/loans-
 import { diffDays, isAfter } from '@formkit/tempo'
 import { Loan } from 'src/loans/entities/loan.entity'
 import { InstallmentsService } from 'src/loans/modules/installments/installments.service'
+import { currencyFormat } from 'src/utils/number-format'
 
 @Injectable()
 export class WhatsAppService {
@@ -86,15 +87,6 @@ export class WhatsAppService {
     return false
   }
 
-  private formatAmount(amount: number) {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-    })
-      .format(amount)
-      .replace(/(\.|,)00$/g, '')
-  }
-
   async runNotifications() {
     const today = new Date()
     const loans = await this.loanManagementService.getLoansInDefault(['customer'])
@@ -105,7 +97,7 @@ export class WhatsAppService {
       if (this.isNotificationsDisabled(loan, today)) continue
 
       const amountInArrears = await this.installmentsService.getAmountOfInterestInArrears(loan.id)
-      const pendingAmount = this.formatAmount(amountInArrears)
+      const pendingAmount = currencyFormat(amountInArrears)
 
       const data: WhatsAppForDelayDto = {
         name: loan.customer.name,

@@ -4,6 +4,8 @@ import { BotUpdate } from './bot-update'
 import { TelegrafModule } from 'nestjs-telegraf'
 import { UsersModule } from 'src/users/users.module'
 import { ConfigModule, ConfigService } from '@nestjs/config'
+import { LoansManagementModule } from 'src/loans/modules/loans-management/loans-management.module'
+import { InstallmentsModule } from 'src/loans/modules/installments/installments.module'
 
 @Module({
   imports: [
@@ -24,7 +26,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
       inject: [ConfigService],
     }),
     UsersModule,
+    LoansManagementModule,
+    InstallmentsModule,
   ],
   providers: [AuthService, BotUpdate],
+  exports: [TelegrafModule],
 })
 export class TelegramBotModule {}
