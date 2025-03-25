@@ -51,7 +51,7 @@ export class InstallmentsService {
       where: { loanId, ...whereOptions },
       relations: ['installmentState'],
     })
-    const result = paginator.paginate(1).execute()
+    const result = paginator.paginate(params.page).execute()
     return result
   }
 
