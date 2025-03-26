@@ -14,7 +14,7 @@ import { Request } from 'express'
 import { RolesService } from '../services/roles.service'
 import { CreateRoleDto } from '../dtos/create-role.dto'
 import { UpdateRoleDto } from '../dtos/update-role.dto'
-import { PayloadToken } from 'src/auth/models/token.model'
+import { AuthJwtPayload } from 'src/auth/types/token.model'
 
 @Controller('roles')
 export class RolesController {
@@ -47,7 +47,7 @@ export class RolesController {
 
   @Get(':id/options')
   getOptions(@Req() req: Request, @Param('id') id: number) {
-    const payload = req.user as PayloadToken
+    const payload = req.user as AuthJwtPayload
     if (Number(payload.role) !== Number(id)) throw new BadRequestException('Role mismatch')
     return this.rolesService.findRoleOptions(payload.role)
   }

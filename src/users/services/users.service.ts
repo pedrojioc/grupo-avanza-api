@@ -33,8 +33,8 @@ export class UsersService {
     return this.repository.find()
   }
 
-  async findOne(id: number) {
-    const user = await this.repository.findOne({ where: { id }, relations: ['role'] })
+  async findOne(id: number, relations: string[] = []) {
+    const user = await this.repository.findOne({ where: { id }, relations })
     if (!user) throw new NotFoundException(`User ${id} not found`)
     return user
   }
@@ -47,13 +47,17 @@ export class UsersService {
     return `This action removes a #${id} user`
   }
 
-  async findByUsername(username: string) {
-    const user = await this.repository.findOne({ where: { username }, relations: ['role'] })
+  async findByUsername(username: string, relations: string[] = []) {
+    const user = await this.repository.findOne({ where: { username }, relations })
     return user
   }
 
   async findUserByChatId(chatId: number) {
     const user = await this.repository.findOne({ where: { chatId } })
     return user
+  }
+
+  updateRefreshToken(id: number, hashedRefreshToken: string) {
+    return this.repository.update(id, { refreshToken: hashedRefreshToken })
   }
 }

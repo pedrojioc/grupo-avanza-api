@@ -52,7 +52,7 @@ export class CustomersService {
   }
 
   update(id: number, updateCustomerDto: UpdateCustomerDto) {
-    return `This action updates a #${id} customer`
+    return this.repository.update(id, updateCustomerDto)
   }
 
   remove(id: number) {

@@ -26,6 +26,9 @@ export class User {
   @JoinColumn({ name: 'role_id' })
   role: Role
 
+  @Column({ name: 'role_id' })
+  roleId: number
+
   @Column({ type: 'varchar', length: 50, nullable: false })
   username: string
 
@@ -33,14 +36,21 @@ export class User {
   @Column()
   password: string
 
+  @Exclude()
   @Column({ type: 'int', nullable: true })
   chatId?: number
 
+  @Exclude()
   @Column({ name: 'verification_code', type: 'varchar', nullable: true })
   verificationCode?: string
 
+  @Exclude()
   @Column({ type: 'timestamp', nullable: true })
   verificationCodeExpires?: Date
+
+  @Exclude()
+  @Column({ name: 'refresh_token', type: 'varchar', nullable: true })
+  refreshToken?: string
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date

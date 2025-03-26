@@ -1,27 +1,54 @@
-import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common'
-import { AuthGuard } from '@nestjs/passport'
-import { Request } from 'express'
+import { Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common'
+import { Request, Response } from 'express'
+
 import { AuthService } from '../services/auth.service'
-import { User } from 'src/users/entities/user.entity'
 import { Public } from '../decorators/public.decorator'
-import { PayloadToken } from '../models/token.model'
+import { AuthJwtPayload } from '../types/token.model'
+import { RefreshAuthGuard } from '../guards/refresh-auth.guard'
+import { LocalAuthGuard } from '../guards/local-auth.guard'
+import { JwtAuthGuard } from '../guards/jwt-auth.guard'
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
-  @UseGuards(AuthGuard('local'))
+  @UseGuards(LocalAuthGuard)
   @Post('login')
-  login(@Req() req: Request) {
-    const user = req.user as User
-    return this.authService.generateJWT(user)
+  async login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const user = req.user as AuthJwtPayload
+    const { accessToken, refreshToken } = await this.authService.login(user)
+
+    res.cookie('Refresh', refreshToken, this.authService.cookieSetup())
+    return { accessToken }
   }
 
   @Get('user')
   async getUser(@Req() req: Request) {
-    const payload = req.user as PayloadToken
+    const payload = req.user as AuthJwtPayload
     const user = await this.authService.getUser(payload.sub)
     return user
+  }
+
+  @Get('status')
+  async status() {
+    return { status: 'ok' }
+  }
+
+  @Public()
+  @UseGuards(RefreshAuthGuard)
+  @Post('refresh')
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const payload = req.user as AuthJwtPayload
+    const { accessToken, refreshToken } = await this.authService.refreshToken(payload)
+    res.cookie('Refresh', refreshToken, this.authService.cookieSetup())
+    return { accessToken }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Req() req) {
+    await this.authService.logout(req.user.id)
+    return { message: 'Logout success' }
   }
 }

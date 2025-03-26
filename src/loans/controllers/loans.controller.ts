@@ -9,7 +9,7 @@ import { FilterPaginatorDto } from 'src/lib/filter-paginator/dtos/filter-paginat
 import { FilterLoansDto } from '../dtos/filter-loans.dto'
 import { AddPaymentDto } from '../modules/payments/dtos/add-payment.dto'
 import { InstallmentsService } from '../modules/installments/installments.service'
-import { PayloadToken } from 'src/auth/models/token.model'
+import { AuthJwtPayload } from 'src/auth/types/token.model'
 
 @Controller('loans')
 export class LoansController {
@@ -26,7 +26,7 @@ export class LoansController {
 
   @Get()
   findAll(@Req() req: Request, @Query() params: FilterLoansDto) {
-    const user = req.user as PayloadToken
+    const user = req.user as AuthJwtPayload
     return this.loansService.findAll(params, user.role, user.sub)
   }
 

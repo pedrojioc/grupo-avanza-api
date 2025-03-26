@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { HttpService } from '@nestjs/axios'
 import { ConfigService } from '@nestjs/config'
-import { AxiosResponse } from 'axios'
 import { firstValueFrom, map } from 'rxjs'
 import { WhatsAppForDelayDto } from './dtos/whatsapp-for-delay.dto'
 import { LoanManagementService } from 'src/loans/modules/loans-management/loans-management.service'
@@ -26,6 +25,7 @@ export class WhatsAppService {
   }
 
   async sendMessage(messageData: WhatsAppForDelayDto) {
+    const unitTimes = messageData.days_late > 1 ? 'días' : 'día'
     const body = JSON.stringify({
       messaging_product: 'whatsapp',
       to: `57${messageData.to}`,
@@ -33,7 +33,7 @@ export class WhatsAppService {
       template: {
         name: 'pago_atrasado',
         language: {
-          code: 'es_CO',
+          code: 'es',
         },
         components: [
           { type: 'header', parameters: [{ type: 'text', parameter_name: 'icon', text: '📢' }] },
@@ -42,8 +42,9 @@ export class WhatsAppService {
             parameters: [
               { type: 'text', parameter_name: 'name', text: messageData.name },
               { type: 'text', parameter_name: 'days_late', text: messageData.days_late },
+              { type: 'text', parameter_name: 'unit_time', text: unitTimes },
               { type: 'text', parameter_name: 'pending_amount', text: messageData.pending_amount },
-              { type: 'text', parameter_name: 'contact_number', text: this.SUPPORT_NUMBER },
+              // { type: 'text', parameter_name: 'contact_number', text: this.SUPPORT_NUMBER },
             ],
           },
         ],
@@ -51,6 +52,7 @@ export class WhatsAppService {
     })
 
     const wToken = this.configService.get('WHATSAPP_TOKEN')
+    const wEndpoint = this.configService.get('WHATSAPP_ENDPOINT')
 
     const config = {
       headers: {
@@ -60,13 +62,7 @@ export class WhatsAppService {
     }
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          'https://graph.facebook.com/v21.0/590691844118476/messages',
-          body,
-          config,
-        ),
-      )
+      const response = await firstValueFrom(this.httpService.post(wEndpoint, body, config))
       return response.data
     } catch (error) {
       console.log(error)

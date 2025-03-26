@@ -13,7 +13,6 @@ import { CustomersModule } from './customers/customers.module'
 import { AuthModule } from './auth/auth.module'
 import { MenuModule } from './menu/menu.module'
 import config from './config'
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module'
 import { NotificationsModule } from './notifications/notifications.module'
 import { TelegramBotModule } from './telegram-bot/telegram-bot.module'
@@ -38,6 +37,6 @@ import { TelegramBotModule } from './telegram-bot/telegram-bot.module'
     NotificationsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: 'APP_GUARD', useClass: JwtAuthGuard }],
+  providers: [AppService],
 })
 export class AppModule {}
