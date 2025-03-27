@@ -89,6 +89,16 @@ export class Loan {
   })
   commissionsPaid: number
 
+  @Column({
+    name: 'commission_rate',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: new NumberColumnTransformer(),
+  })
+  commissionRate: number
+
   @Column({ name: 'start_at', type: 'datetime' })
   startAt: Date
 

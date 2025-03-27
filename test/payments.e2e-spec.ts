@@ -303,7 +303,9 @@ describe('PaymentsController (e2e)', () => {
 
   describe('Commissions', () => {
     it('/payments (POST) - CREATE: COMMISSION', async () => {
-      const loan = await seeder.seedLoans(2)
+      const employeeId = 2
+      const commissionRate = 25
+      const loan = await seeder.seedLoans(employeeId, commissionRate)
       const installmentRs = await seeder.seedInstallment(
         loan.id,
         INSTALLMENT_STATES.AWAITING_PAYMENT,

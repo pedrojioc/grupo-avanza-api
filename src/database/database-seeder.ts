@@ -45,7 +45,7 @@ export class DatabaseSeeder {
     const interest = await this.dataSource.getRepository(Interest).insert(interestData)
     return interest
   }
-  async seedLoans(employeeId: number = 1) {
+  async seedLoans(employeeId: number = 1, commissionRate: number = 25) {
     const loanData: CreateLoanDto = {
       customerId: 5,
       employeeId,
@@ -59,6 +59,7 @@ export class DatabaseSeeder {
       startAt: new Date('2024-08-16'),
       endAt: new Date('2025-02-16'),
       loanStateId: LOAN_STATES.IN_PROGRESS,
+      commissionRate,
     }
     const repo = this.dataSource.getRepository(Loan)
     const loan = repo.create(loanData)

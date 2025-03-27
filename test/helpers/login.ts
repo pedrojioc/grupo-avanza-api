@@ -5,6 +5,6 @@ export async function authenticate(host: string) {
     .post('/auth/login')
     .send({ username: 'pedro', password: 'pedro.123' })
 
-  const accessToken = response.body.access_token
+  const accessToken = response.body.accessToken
   return accessToken
 }

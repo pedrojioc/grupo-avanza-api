@@ -62,6 +62,7 @@ describe('LoansController (e2e)', () => {
       startAt: new Date(),
       endAt: new Date(new Date().setMonth(new Date().getMonth() + 6)),
       loanStateId: LOAN_STATES.IN_PROGRESS,
+      commissionRate: 25,
     }
     return request(hostServer)
       .post('/loans')

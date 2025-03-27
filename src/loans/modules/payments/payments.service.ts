@@ -128,13 +128,15 @@ export class PaymentsService {
 
       let commissionAmount = 0
       const isFullyPaid = installment.installmentStateId === INSTALLMENT_STATES.PAID
-      if (employeeId !== 1 && isFullyPaid) {
+      if (loan.commissionRate > 0 && isFullyPaid) {
         const commissionData = this.commissionService.createCommissionData(
+          loan.commissionRate,
           employeeId,
           installment.id,
           installment.interestPaid,
         )
         commissionAmount = commissionData.amount
+
         await this.commissionService.transactionalCreate(manager, commissionData)
         await this.employeeService.transactionalUpdateBalance(manager, employeeId, commissionAmount)
       }

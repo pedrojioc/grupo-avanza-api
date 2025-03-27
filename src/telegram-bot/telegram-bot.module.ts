@@ -12,7 +12,6 @@ import { InstallmentsModule } from 'src/loans/modules/installments/installments.
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        console.log('Bot Token: ', configService.get('TELEGRAM_BOT_TOKEN'))
         return {
           token: configService.get('TELEGRAM_BOT_TOKEN'),
           launchOptions: {

@@ -19,19 +19,25 @@ export class CommissionsService {
       installment: { id: createCommissionDto.installmentId },
       interestAmount: createCommissionDto.interestAmount,
       amount: createCommissionDto.amount,
-      rate: 30,
+      rate: createCommissionDto.rate,
+      isPaid: false,
     })
     return createCommissionDto.amount
   }
 
-  createCommissionData(employeeId: number, installmentId, interestPaid): CreateCommissionDto {
-    const commissionAmount = interestPaid * 0.3
+  createCommissionData(
+    commissionRate: number,
+    employeeId: number,
+    installmentId: number,
+    interestPaid: number,
+  ): CreateCommissionDto {
+    const commissionAmount = (interestPaid * commissionRate) / 100
     return {
       employeeId,
       installmentId,
       interestAmount: interestPaid,
       amount: commissionAmount,
-      rate: 30,
+      rate: commissionRate,
       isPaid: false,
     }
   }
