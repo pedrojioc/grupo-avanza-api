@@ -12,6 +12,9 @@ export class Menu {
   @Column({ type: 'varchar', length: 100, nullable: true })
   icon: string
 
+  @Column({ type: 'int', default: 1 })
+  order: number
+
   @OneToMany(() => Option, (option) => option.menu)
   options: Option[]
 }
