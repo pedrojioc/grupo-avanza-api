@@ -60,6 +60,7 @@ export class DatabaseSeeder {
       endAt: new Date('2025-02-16'),
       loanStateId: LOAN_STATES.IN_PROGRESS,
       commissionRate,
+      installmentTypeId: 1,
     }
     const repo = this.dataSource.getRepository(Loan)
     const loan = repo.create(loanData)

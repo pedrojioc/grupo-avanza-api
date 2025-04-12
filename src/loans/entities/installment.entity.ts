@@ -46,6 +46,9 @@ export class Installment {
   @Column({ type: 'int', default: 0 })
   days: number
 
+  @Column({ name: 'installment_number', type: 'int', default: 0 })
+  installmentNumber: number
+
   @Column({
     type: 'decimal',
     precision: 15,

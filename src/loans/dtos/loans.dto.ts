@@ -14,6 +14,10 @@ export class CreateLoanDto {
   @IsNotEmpty()
   readonly paymentPeriodId: number
 
+  @IsPositive()
+  @IsNotEmpty()
+  readonly installmentTypeId: number
+
   @IsNumber()
   @IsNotEmpty()
   readonly amount: number
@@ -78,4 +82,8 @@ export class UpdateLoanDto extends PartialType(CreateLoanDto) {
   @IsDateString({ strict: false })
   @IsOptional()
   lastNotificationSent?: Date
+
+  @IsPositive()
+  @IsOptional()
+  currentInstallmentNumber?: number
 }

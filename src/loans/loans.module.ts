@@ -29,6 +29,7 @@ import { InstallmentsService } from './modules/installments/installments.service
 import { LoansManagementModule } from './modules/loans-management/loans-management.module'
 import { LoanReportsModule } from './modules/loan-reports/loan-reports.module'
 import { DailyInterestModule } from './modules/daily-interest/daily-interest.module'
+import { InstallmentType } from './modules/installments/entities/installment-type.entity'
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { DailyInterestModule } from './modules/daily-interest/daily-interest.mod
       Installment,
       InstallmentState,
       PaymentMethod,
+      InstallmentType,
     ]),
     CustomersModule,
     EmployeesModule,

@@ -11,6 +11,11 @@ export const PAYMENT_PERIODS = {
   MONTHLY: 3,
 }
 
+export const INSTALLMENT_TYPES = {
+  FIXED: 1,
+  FLEXIBLE: 2,
+}
+
 type Keys = keyof typeof LOAN_STATES
 
 export type LoanStateValueTypes = (typeof LOAN_STATES)[Keys]

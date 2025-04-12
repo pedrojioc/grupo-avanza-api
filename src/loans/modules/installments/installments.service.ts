@@ -1,4 +1,4 @@
-import { DataSource, EntityManager, FindOptionsWhere, Repository } from 'typeorm'
+import { DataSource, EntityManager, FindOptionsWhere, MoreThan, Repository } from 'typeorm'
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { diffDays, format } from '@formkit/tempo'
@@ -148,5 +148,9 @@ export class InstallmentsService {
 
   getStates() {
     return this.dataSource.manager.find(InstallmentState)
+  }
+
+  countInstallments(loanId: number) {
+    return this.repository.countBy({ loanId, interest: MoreThan(0) })
   }
 }

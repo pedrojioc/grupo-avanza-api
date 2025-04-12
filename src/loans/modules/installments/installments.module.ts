@@ -8,16 +8,24 @@ import { InterestsModule } from '../interests/interests.module'
 import { InstallmentFactoryService } from './installment-factory.service'
 import { InstallmentsController } from './installments.controller'
 import { DailyInterestModule } from '../daily-interest/daily-interest.module'
+import { InstallmentTypesController } from './installment-types.controller'
+import { InstallmentTypesService } from './installment-types.service'
+import { InstallmentType } from './entities/installment-type.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Installment]),
+    TypeOrmModule.forFeature([Installment, InstallmentType]),
     LoansManagementModule,
     InterestsModule,
     DailyInterestModule,
   ],
-  providers: [InstallmentsService, InstallmentRepository, InstallmentFactoryService],
+  providers: [
+    InstallmentsService,
+    InstallmentRepository,
+    InstallmentFactoryService,
+    InstallmentTypesService,
+  ],
   exports: [InstallmentsService, InstallmentFactoryService],
-  controllers: [InstallmentsController],
+  controllers: [InstallmentsController, InstallmentTypesController],
 })
 export class InstallmentsModule {}

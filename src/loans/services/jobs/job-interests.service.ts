@@ -13,7 +13,7 @@ import {
 } from '@formkit/tempo'
 import { INTEREST_STATE } from '../../constants/interests'
 import { Interest } from '../../entities/interest.entity'
-import { LOAN_STATES, PAYMENT_PERIODS } from 'src/loans/shared/constants'
+import { INSTALLMENT_TYPES, LOAN_STATES, PAYMENT_PERIODS } from 'src/loans/shared/constants'
 import { LoanManagementService } from 'src/loans/modules/loans-management/loans-management.service'
 import { Loan } from 'src/loans/entities/loan.entity'
 import { InstallmentsService } from 'src/loans/modules/installments/installments.service'
@@ -22,6 +22,7 @@ import { Installment } from 'src/loans/entities/installment.entity'
 import { UpdateInstallmentDto } from 'src/loans/dtos/update-installment.dto'
 import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 import { CreateInstallmentDto } from 'src/loans/dtos/create-installment.dto'
+import { UpdateLoanDto } from 'src/loans/dtos/loans.dto'
 
 @Injectable()
 export class JobInterestsService {
@@ -35,65 +36,77 @@ export class JobInterestsService {
     private loanManagementService: LoanManagementService,
   ) {}
 
+  // -------------------------------
+  // COMMON METHODS
+  // -------------------------------
   getDailyInterest(debt: number, interestRate: number) {
     const MONTH_DAYS = 30
-    const interest = (debt * interestRate) / 100
-    return interest / MONTH_DAYS
+    const monthlyInterest = (debt * interestRate) / 100
+    return monthlyInterest / MONTH_DAYS
   }
 
-  private generateUpdateInterestDto(installment: Installment, dailyInterest: number) {
+  calculateDaysLate(deadline: Date, today: Date) {
+    return diffDays(today, deadline)
+  }
+
+  private generateInstallmentDates(
+    loan: Loan,
+    installmentNumber: number,
+  ): { startsOn: Date; deadline: Date } {
+    let startsOn: Date
+    let deadline: Date
+
+    if (installmentNumber === 1) {
+      startsOn = addDay(loan.startAt, 1)
+      deadline = addMonth(loan.startAt, 1)
+    } else {
+      // Usamos loan.currentInstallmentNumber ya que es equivalente a installmentNumber para la cuota en progreso
+      startsOn = addMonth(loan.startAt, loan.currentInstallmentNumber)
+      deadline = addMonth(startsOn, 1)
+      // Ajustamos que la cuota inicie el día siguiente
+      startsOn.setDate(startsOn.getDate() + 1)
+    }
+
+    return { startsOn, deadline }
+  }
+
+  private isTodayTheDeadline(deadline: Date): boolean {
+    return isEqual(deadline, format(this.TODAY, this.DATE_FORMAT))
+  }
+
+  // -------------------------------
+  // METHODS FOR FLEXIBLE CREDITS
+  // -------------------------------
+
+  private generateUpdateInterestDto(
+    installment: Installment,
+    dailyInterest: number,
+  ): UpdateInstallmentDto {
     let interest = Number(installment.interest)
-    if (installment.days <= this.DAYS_OF_INTEREST) interest = interest + dailyInterest
 
     const days = installment.days + 1
+    if (installment.days < 15) {
+      interest = interest + dailyInterest
+    } else if (installment.days === 15) {
+      interest = interest + dailyInterest * 16
+    }
 
-    const installmentDto: UpdateInstallmentDto = {
+    return {
       interest,
       days,
     }
-
-    return installmentDto
   }
 
-  private dayOfMonth(date: Date) {
-    return date.getDate()
-  }
-
-  private getFortnightlyDeadline(today: Date) {
-    const dayOfTheMonth = this.dayOfMonth(today)
-    if (dayOfTheMonth < 15) {
-      return new Date(new Date().setDate(15))
-    }
-    let deadline = monthEnd(today)
-    if (monthDays(deadline) === 31) {
-      deadline = addDay(deadline, -1)
-    }
-    return deadline
-  }
-
-  private generateDeadline(paymentPeriodId: number, today: Date) {
-    if (paymentPeriodId === PAYMENT_PERIODS.FORTNIGHTLY) {
-      return this.getFortnightlyDeadline(today)
-    }
-    return addMonth(addDay(today, -1), 1)
-  }
-
-  private removeTime(date: Date) {
-    return new Date(date.setUTCHours(0, 0, 0, 0))
-  }
-
-  private createInstallmentData(
-    loan: Loan,
-    dailyInterest: number,
-    paymentPeriodId: number,
-    today: Date,
-  ) {
-    const deadline = this.removeTime(this.generateDeadline(paymentPeriodId, today))
-    const installmentData: CreateInstallmentDto = {
+  private generateFlexibleInstallmentData(loan: Loan, dailyInterest: number): CreateInstallmentDto {
+    const { startsOn, deadline } = this.generateInstallmentDates(
+      loan,
+      loan.currentInstallmentNumber + 1,
+    )
+    return {
       loanId: loan.id,
       installmentStateId: INSTALLMENT_STATES.IN_PROGRESS,
       debt: loan.debt,
-      startsOn: this.TODAY,
+      startsOn,
       paymentDeadline: deadline,
       days: 1,
       capital: 0,
@@ -101,61 +114,116 @@ export class JobInterestsService {
       interestPaid: 0,
       total: 0,
     }
-
-    return installmentData
   }
 
-  private async updateLoanInterest(loanId: number, interestAmount: number) {
-    return await this.loanManagementService.rawUpdate(loanId, {
-      currentInterest: interestAmount,
+  private async processFlexibleLoans(loan: Loan, today: Date): Promise<void> {
+    const dailyInterestAmount = this.getDailyInterest(loan.debt, loan.interestRate)
+    let installment = await this.installmentService.getCurrentInstallment(loan.id, today)
+    let loanValues: UpdateLoanDto = { currentInterest: loan.currentInterest + dailyInterestAmount }
+
+    if (installment) {
+      console.log(typeof installment.paymentDeadline)
+      const daily = await this.dailyInterestService.findOneByDate(installment.id, today)
+      if (daily) return
+
+      const updatedValues = this.generateUpdateInterestDto(installment, dailyInterestAmount)
+
+      if (this.isTodayTheDeadline(installment.paymentDeadline)) {
+        updatedValues.installmentStateId = INSTALLMENT_STATES.AWAITING_PAYMENT
+      }
+      await this.installmentService.update(installment.id, updatedValues)
+    } else {
+      const newInstallment = this.generateFlexibleInstallmentData(loan, dailyInterestAmount)
+      installment = await this.installmentService.create(newInstallment)
+      loanValues.currentInstallmentNumber = loan.currentInstallmentNumber + 1
+    }
+    // Create daily interest history
+    await this.dailyInterestService.create({
+      installmentId: installment.id,
+      debt: loan.debt,
+      amount: dailyInterestAmount,
+      date: today,
     })
+    // Update current interest on loans table
+    await this.loanManagementService.rawUpdate(loan.id, loanValues)
+  }
+
+  // -------------------------------
+  // METHODS FOR FIXED CREDITS (PROGRESSIVE GENERATION)
+  // -------------------------------
+
+  /**
+   * Generates the start date and payment deadline for a fixed installment.
+   * @param loan The loan object containing the start date and other details.
+   * @param installmentNumber El numero de la cuota a generar.
+   * @returns An object containing the start date and payment deadline for the installment.
+   */
+  private generateFixedInstallmentData(
+    loan: Loan,
+    installmentNumber: number,
+  ): CreateInstallmentDto {
+    const { startsOn, deadline } = this.generateInstallmentDates(loan, installmentNumber)
+
+    const interestRate = loan.interestRate / 100
+    const installmentAmount =
+      (loan.amount * interestRate) / (1 - Math.pow(1 + interestRate, -loan.installmentsNumber))
+    const prevBalance =
+      loan.amount * Math.pow(1 + interestRate, installmentNumber - 1) -
+      installmentAmount * ((Math.pow(1 + interestRate, installmentNumber - 1) - 1) / interestRate)
+
+    const interest = prevBalance * interestRate
+    const amortization = installmentAmount - interest
+    const total = interest + amortization
+    return {
+      loanId: loan.id,
+      installmentStateId: INSTALLMENT_STATES.IN_PROGRESS,
+      debt: loan.debt,
+      startsOn,
+      paymentDeadline: deadline,
+      days: 1,
+      capital: amortization,
+      interest,
+      interestPaid: 0,
+      total,
+    }
+  }
+
+  private async processFixedLoans(loan: Loan) {
+    const currentInstallment = await this.installmentService.getCurrentInstallment(
+      loan.id,
+      this.TODAY,
+    )
+    if (currentInstallment) {
+      const updatedValues: UpdateInstallmentDto = {
+        days: currentInstallment.days + 1,
+      }
+      if (this.isTodayTheDeadline(currentInstallment.paymentDeadline)) {
+        updatedValues.installmentStateId = INSTALLMENT_STATES.AWAITING_PAYMENT
+      }
+      await this.installmentService.update(currentInstallment.id, updatedValues)
+      return true
+    } else {
+      if (loan.currentInstallmentNumber >= loan.installmentsNumber) return true
+      // Generate next installment
+      const installmentNumber = loan.currentInstallmentNumber + 1
+      const installmentData = this.generateFixedInstallmentData(loan, installmentNumber)
+      await this.installmentService.create(installmentData)
+      await this.loanManagementService.rawUpdate(loan.id, {
+        currentInstallmentNumber: installmentNumber,
+        currentInterest: loan.currentInterest + installmentData.interest,
+      })
+    }
   }
 
   async runDailyInterest(today = this.TODAY) {
     const loans = await this.loanManagementService.getLoansByState(LOAN_STATES.IN_PROGRESS)
 
     for (const loan of loans) {
-      console.log('Loan Id: ', loan.id)
-      const dailyInterestAmount = this.getDailyInterest(loan.debt, loan.interestRate)
-      let installment = await this.installmentService.getCurrentInstallment(loan.id, today)
-
-      if (installment) {
-        const daily = await this.dailyInterestService.findOneByDate(installment.id, today)
-        console.log('Daily: ', daily)
-        if (daily) continue
-        console.log('Run daily for existing installment')
-        const installmentValues = this.generateUpdateInterestDto(installment, dailyInterestAmount)
-        if (installment.id === 349) {
-          console.log('Verifying if today is the deadline')
-          console.log(installment.paymentDeadline, today)
-          console.log(typeof installment.paymentDeadline, typeof today)
-        }
-        if (isEqual(installment.paymentDeadline, format(today, this.DATE_FORMAT))) {
-          console.log('Today is the deadline')
-          installmentValues.installmentStateId = INSTALLMENT_STATES.AWAITING_PAYMENT
-        }
-        await this.installmentService.update(installment.id, installmentValues)
+      if (loan.installmentTypeId === INSTALLMENT_TYPES.FIXED) {
+        await this.processFixedLoans(loan)
       } else {
-        if (this.dayOfMonth(today) > this.DAYS_OF_INTEREST) continue
-        console.log('Create new installment')
-        const newInstallment = this.createInstallmentData(
-          loan,
-          dailyInterestAmount,
-          loan.paymentPeriodId,
-          today,
-        )
-        installment = await this.installmentService.create(newInstallment)
+        await this.processFlexibleLoans(loan, today)
       }
-      // Create daily interest history
-      await this.dailyInterestService.create({
-        installmentId: installment.id,
-        debt: loan.debt,
-        amount: dailyInterestAmount,
-        date: today,
-      })
-      // Update current interest on loans table
-      const currentInterest = Number(loan.currentInterest) + dailyInterestAmount
-      await this.updateLoanInterest(loan.id, currentInterest)
     }
     return true
   }
@@ -174,10 +242,6 @@ export class JobInterestsService {
       .getMany()
   }
 
-  calculateDaysLate(deadline: Date, today: Date) {
-    return diffDays(today, deadline)
-  }
-
   async checkOverduePayments() {
     const today = this.TODAY
     const overdueStates = {
@@ -188,10 +252,9 @@ export class JobInterestsService {
     const loans = await this.loanManagementService.getLoansByState(LOAN_STATES.IN_PROGRESS)
     for (const loan of loans) {
       const installments = await this.installmentService.findUnpaidInstallments(loan.id)
-      if (loan.id !== 16) continue
 
       const overdueInstallmentIds = []
-      const pastDuesOfInstallments = [0]
+      const daysLateArray = []
       for (const installment of installments) {
         const { installmentStateId } = installment
         // Check and store if the installment state needs to be updated
@@ -199,12 +262,12 @@ export class JobInterestsService {
 
         // Calcula y almacena los días en mora de cada cuota
         const days = this.calculateDaysLate(installment.paymentDeadline, today)
-        pastDuesOfInstallments.push(days)
+        daysLateArray.push(days)
       }
-      const daysLate = Math.max(...pastDuesOfInstallments)
+      const daysLate = Math.max(...daysLateArray)
 
       await this.loanManagementService.rawUpdate(loan.id, { daysLate })
-      await this.installmentService.bulkUpdate(pastDuesOfInstallments, {
+      await this.installmentService.bulkUpdate(overdueInstallmentIds, {
         installmentStateId: INSTALLMENT_STATES.OVERDUE,
       })
     }
@@ -212,81 +275,13 @@ export class JobInterestsService {
     return true
   }
 
-  /*
-  async updateState() {
-    const today = new Date()
-    const todayString = format(today, this.DATE_FORMAT)
-
-    const interests = await this.repository
-      .createQueryBuilder('interests')
-      .where('interest_state_id = :interestState AND deadline <= :currentDate', {
-        interestState: INTEREST_STATE.IN_PROGRESS,
-        currentDate: todayString,
-      })
-      .getMany()
-
-    for (const interest of interests) {
-      const daysLate = diffDays(todayString, format(interest.deadline, this.DATE_FORMAT))
-      if (daysLate > 0) {
-        await this.interestService.rawUpdate(interest.id, {
-          interestStateId: INTEREST_STATE.OVERDUE,
-        })
-        await this.loanManagementService.rawUpdate(interest.loanId, { daysLate })
-      } else {
-        await this.interestService.rawUpdate(interest.id, {
-          interestStateId: INTEREST_STATE.AWAITING_PAYMENT,
-        })
-      }
-    }
-    console.log('Operación completada')
-  }
-
-  async insertUnsavedInterests() {
+  async setCurrentInstallmentNumber() {
     const loans = await this.loanManagementService.getLoansByState(LOAN_STATES.IN_PROGRESS)
-    const today = format(new Date(), this.DATE_FORMAT)
     for (const loan of loans) {
-      const lastInterestGenerated = await this.repository
-        .createQueryBuilder('interest')
-        .where('loan_id = :loanId', { loanId: loan.id })
-        .orderBy('deadline', 'DESC')
-        .getOne()
-
-      if (lastInterestGenerated) {
-        // console.log('Interest found, ID: ', lastInterestGenerated.id)
-        // console.log(lastInterestGenerated.startAt, lastInterestGenerated.deadline)
-
-        const prevDeadline = lastInterestGenerated.deadline.toString()
-
-        // if today > deadline
-        if (isAfter(today, prevDeadline)) {
-          // Generate
-          console.log('Generate interest')
-          let startFrom = addDay(lastInterestGenerated.deadline, 1)
-          if (startFrom.getDate() === 31) {
-            startFrom = addDay(startFrom, 1)
-          }
-          const deadline = this.removeTime(addMonth(startFrom, 1))
-          const dailyInterest = this.getDailyInterest(loan.debt, loan.interestRate)
-          const days = diffDays(today, startFrom)
-          const newInterest: CreateInterestDto = {
-            amount: dailyInterest * days,
-            capital: loan.debt,
-            startAt: startFrom,
-            deadline,
-            days,
-            loanId: loan.id,
-            interestStateId: INTEREST_STATE.IN_PROGRESS,
-            lastInterestGenerated: new Date(),
-          }
-          await this.interestService.rawCreate(newInterest)
-        } else {
-          console.log('No generate', lastInterestGenerated.loanId)
-        }
-      } else {
-        console.log('Interest not found')
-      }
+      const installmentsNumber = await this.installmentService.countInstallments(loan.id)
+      await this.loanManagementService.rawUpdate(loan.id, {
+        currentInstallmentNumber: installmentsNumber,
+      })
     }
-    console.log('Task successful')
   }
-  */
 }

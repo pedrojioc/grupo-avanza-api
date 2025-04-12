@@ -3,6 +3,7 @@ import { mockCustomer } from './customers'
 import { mockEmployee } from './employees'
 import { PaymentPeriod } from 'src/loans/entities/payment-period.entity'
 import { LoanState } from 'src/loans/entities/loan-state.entity'
+import { InstallmentType } from 'src/loans/modules/installments/entities/installment-type.entity'
 
 const loanStateInProgress = new LoanState()
 loanStateInProgress.id = 1
@@ -36,6 +37,10 @@ export const mockLoan: Loan = {
   isNotificationsPaused: true,
   pauseNotificationsUntil: null,
   lastNotificationSent: null,
+  installmentType: new InstallmentType(),
+  installmentTypeId: 1,
+  currentInstallmentNumber: 0,
+  commissionRate: 0,
 }
 
 const mockLoans = new Array(10).map((i) => ({ ...mockLoan, id: i + 1 }))

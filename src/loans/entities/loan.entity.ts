@@ -13,6 +13,7 @@ import { Employee } from '../../employees/entities/employee.entity'
 import { PaymentPeriod } from './payment-period.entity'
 import { LoanState } from './loan-state.entity'
 import { NumberColumnTransformer } from 'src/shared/transformers/number-column-transformer'
+import { InstallmentType } from '../modules/installments/entities/installment-type.entity'
 
 @Entity({ name: 'loans' })
 export class Loan {
@@ -40,6 +41,12 @@ export class Loan {
   @Column({ name: 'loan_state_id' })
   loanStateId: number
 
+  @ManyToOne(() => InstallmentType, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'installment_type_id' })
+  installmentType: InstallmentType
+  @Column({ name: 'installment_type_id' })
+  installmentTypeId: number
+
   @Column({ type: 'decimal', precision: 15, scale: 2, transformer: new NumberColumnTransformer() })
   amount: number
 
@@ -54,6 +61,14 @@ export class Loan {
 
   @Column({ name: 'installments_paid', type: 'int', default: 0 })
   installmentsPaid: number
+
+  @Column({
+    name: 'current_installment_number',
+    type: 'int',
+    default: 0,
+    transformer: new NumberColumnTransformer(),
+  })
+  currentInstallmentNumber: number
 
   @Column({ type: 'int', name: 'days_late', default: 0 })
   daysLate: number
