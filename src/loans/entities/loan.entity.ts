@@ -44,7 +44,7 @@ export class Loan {
   @ManyToOne(() => InstallmentType, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'installment_type_id' })
   installmentType: InstallmentType
-  @Column({ name: 'installment_type_id' })
+  @Column({ name: 'installment_type_id', nullable: true })
   installmentTypeId: number
 
   @Column({ type: 'decimal', precision: 15, scale: 2, transformer: new NumberColumnTransformer() })

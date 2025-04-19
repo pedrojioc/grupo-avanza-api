@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 import { INTEREST_STATE } from 'src/loans/constants/interests'
+import { Installment } from 'src/loans/entities/installment.entity'
 import { Interest } from 'src/loans/entities/interest.entity'
 import { Loan } from 'src/loans/entities/loan.entity'
 import { LOAN_STATES } from 'src/loans/shared/constants'
@@ -24,13 +26,13 @@ export class LoanReportsService {
   async getPendingInterest() {
     const { total } = await this.dataSource
       .createQueryBuilder()
-      .select('SUM(interest.amount)', 'total')
-      .from(Interest, 'interest')
-      .where('interest.interest_state_id <> :paidId', {
-        paidId: INTEREST_STATE.PAID,
+      .select('SUM(installment.interest)', 'total')
+      .from(Installment, 'installment')
+      .where('installment.installment_state_id <> :paidId', {
+        paidId: INSTALLMENT_STATES.PAID,
       })
-      .andWhere('interest.interest_state_id <> :inProgressId', {
-        inProgressId: INTEREST_STATE.IN_PROGRESS,
+      .andWhere('installment.installment_state_id <> :inProgressId', {
+        inProgressId: INSTALLMENT_STATES.IN_PROGRESS,
       })
       .getRawOne()
 

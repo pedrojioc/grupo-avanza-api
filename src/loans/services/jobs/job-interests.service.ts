@@ -284,4 +284,15 @@ export class JobInterestsService {
       })
     }
   }
+
+  async setPaymentDateForPaidInstallments() {
+    const installments = await this.installmentService.findAll({
+      installmentStateId: INSTALLMENT_STATES.PAID,
+    })
+    for (const installment of installments) {
+      await this.installmentService.update(installment.id, {
+        paymentDate: installment.updatedAt,
+      })
+    }
+  }
 }

@@ -21,6 +21,5 @@ export class AddPaymentDto {
   readonly installmentId: number
 
   @IsDateString({ strict: false })
-  @IsOptional()
-  paymentDate?: Date
+  paymentDate: Date
 }

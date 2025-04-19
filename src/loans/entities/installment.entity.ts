@@ -76,6 +76,9 @@ export class Installment {
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   total: number
 
+  @Column({ name: 'payment_date', type: 'date', nullable: true })
+  paymentDate: Date
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 

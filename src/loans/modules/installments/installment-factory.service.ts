@@ -32,6 +32,7 @@ export class InstallmentFactoryService {
 
     if (interestPaid >= installment.interest) {
       installmentData.installmentStateId = INSTALLMENT_STATES.PAID
+      installmentData.paymentDate = addPaymentDto.paymentDate
     }
 
     return installmentData

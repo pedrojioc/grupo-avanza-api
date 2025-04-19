@@ -29,6 +29,12 @@ export class InstallmentsService {
     return this.repository.save(installment)
   }
 
+  findAll(where: FindOptionsWhere<Installment> = {}) {
+    return this.repository.find({
+      where,
+    })
+  }
+
   update(id: number, installmentDto: UpdateInstallmentDto) {
     return this.repository.update(id, installmentDto)
   }

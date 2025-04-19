@@ -161,7 +161,7 @@ export class PaymentsService {
         capital: installment.capital,
         interest: installment.interestPaid,
         total: installment.capital + installment.interestPaid,
-        date: paymentDto.paymentDate || new Date(),
+        date: paymentDto.paymentDate,
       })
 
       return installment
