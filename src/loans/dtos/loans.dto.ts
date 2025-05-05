@@ -35,6 +35,31 @@ export class CreateLoanDto {
   readonly installmentsNumber: number
 
   @IsNumber()
+  commissionRate: number
+
+  @IsDateString({ strict: false })
+  @IsNotEmpty()
+  readonly startAt: Date
+
+  @IsDateString({ strict: false })
+  @IsNotEmpty()
+  readonly endAt: Date
+
+  @IsPositive()
+  @IsOptional()
+  paymentDay?: number
+
+  @IsPositive()
+  @IsNotEmpty()
+  loanStateId: number
+
+  @IsPositive()
+  @IsOptional()
+  parentLoanId?: number
+}
+
+export class UpdateLoanDto extends PartialType(CreateLoanDto) {
+  @IsNumber()
   @IsOptional()
   installmentsPaid?: number
 
@@ -54,31 +79,10 @@ export class CreateLoanDto {
   @IsOptional()
   commissionsPaid?: number
 
-  @IsNumber()
-  commissionRate: number
-
-  @IsDateString({ strict: false })
-  @IsNotEmpty()
-  readonly startAt: Date
-
-  @IsDateString({ strict: false })
-  @IsNotEmpty()
-  readonly endAt: Date
-
-  @IsPositive()
-  @IsOptional()
-  paymentDay?: number
-
   @IsDateString()
   @IsOptional()
   readonly lastInterestPayment?: Date
 
-  @IsPositive()
-  @IsNotEmpty()
-  loanStateId: number
-}
-
-export class UpdateLoanDto extends PartialType(CreateLoanDto) {
   @IsDateString({ strict: false })
   @IsOptional()
   lastNotificationSent?: Date

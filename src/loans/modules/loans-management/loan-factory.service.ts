@@ -8,6 +8,7 @@ import { LoanState } from '../../entities/loan-state.entity'
 import { LOAN_STATES } from '../../shared/constants'
 import { INSTALLMENT_STATES } from 'src/loans/constants/installments'
 import { Installment } from 'src/loans/entities/installment.entity'
+import { create } from 'domain'
 
 @Injectable()
 export class LoanFactoryService {
@@ -31,6 +32,16 @@ export class LoanFactoryService {
     }
 
     return loan
+  }
+
+  generateLoanObject(loanDto: CreateLoanDto) {
+    let loanObject = loanDto
+    if (!loanObject.paymentDay) loanObject.paymentDay = new Date().getDate()
+    if (loanObject.loanStateId === LOAN_STATES.FINALIZED) {
+      loanObject.debt = 0
+    }
+    loanObject.debt = loanDto.amount
+    return loanObject
   }
 
   valuesAfterPayment(

@@ -3,6 +3,7 @@ export const LOAN_STATES = {
   IN_PROGRESS: 2,
   FINALIZED: 3,
   REJECTED: 4,
+  REFINANCED: 5,
 }
 
 export const PAYMENT_PERIODS = {

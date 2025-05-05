@@ -61,8 +61,13 @@ export class InstallmentsService {
     return result
   }
 
-  async bulkUpdate(installmentIds: number[], updateInstallmentDto: UpdateInstallmentDto) {
-    await this.repository
+  async bulkUpdate(
+    installmentIds: number[],
+    updateInstallmentDto: UpdateInstallmentDto,
+    manager?: EntityManager,
+  ) {
+    const queryBuilder = manager ? manager : this.repository
+    await queryBuilder
       .createQueryBuilder()
       .update(Installment)
       .set(updateInstallmentDto)
@@ -112,14 +117,20 @@ export class InstallmentsService {
     return daysLate
   }
 
-  findUnpaidInstallments(loanId: number, installmentId?: number) {
+  findUnpaidInstallments(
+    loanId: number,
+    installmentId?: number,
+    omitCurrentInstallment: boolean = true,
+  ) {
     const query = this.repository
       .createQueryBuilder()
       .where('loan_id = :loanId', { loanId })
       .andWhere('installment_state_id <> :state', {
         state: INSTALLMENT_STATES.PAID,
       })
-      .andWhere(':today >= payment_deadline', {
+
+    if (omitCurrentInstallment)
+      query.andWhere(':today >= payment_deadline', {
         today: this.today,
       })
 

@@ -55,7 +55,6 @@ export class DatabaseSeeder {
       interestRate: 10,
       installmentsNumber: 6,
       paymentDay: 16,
-      lastInterestPayment: null,
       startAt: new Date('2024-08-16'),
       endAt: new Date('2025-02-16'),
       loanStateId: LOAN_STATES.IN_PROGRESS,

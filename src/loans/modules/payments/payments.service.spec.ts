@@ -132,6 +132,7 @@ describe('PaymentsService', () => {
       paymentMethodId: 1,
       capital: 0,
       installmentId: mockInstallment.id,
+      paymentDate: undefined,
     }
 
     const rs = await paymentService.addPayment(paymentDto)
@@ -156,8 +157,9 @@ describe('PaymentsService', () => {
     const paymentDto: AddPaymentDto = {
       loanId: mockLoan.id,
       paymentMethodId: 1,
-      capital: 100_000,
+      capital: 100000,
       installmentId: null,
+      paymentDate: undefined,
     }
 
     await expect(paymentService.addPayment(paymentDto)).rejects.toThrow(
@@ -181,6 +183,7 @@ describe('PaymentsService', () => {
       paymentMethodId: 1,
       capital: 0,
       installmentId: null,
+      paymentDate: undefined,
     }
 
     await expect(paymentService.addPayment(paymentDto)).rejects.toThrow(
@@ -204,7 +207,8 @@ describe('PaymentsService', () => {
       paymentMethodId: 1,
       capital: 0,
       installmentId: mockInstallment.id,
-      customInterest: 50_000,
+      customInterest: 50000,
+      paymentDate: undefined,
     }
 
     const rs = await paymentService.addPayment(paymentDto)

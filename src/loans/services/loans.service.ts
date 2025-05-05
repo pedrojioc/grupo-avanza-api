@@ -6,8 +6,6 @@ import { Loan } from '../entities/loan.entity'
 import { CreateLoanDto, UpdateLoanDto } from '../dtos/loans.dto'
 import { CustomersService } from 'src/customers/services/customers.service'
 import { EmployeesService } from 'src/employees/services/employees.service'
-import { LOAN_STATES, LoanStateValueTypes } from '../shared/constants'
-import { PayOffDto } from '../dtos/pay-off.dto'
 
 import { FilterLoansDto } from '../dtos/filter-loans.dto'
 import { LoanFactoryService } from '../modules/loans-management/loan-factory.service'
@@ -104,6 +102,10 @@ export class LoansService {
       where: { id },
       relations,
     })
+  }
+
+  update(id: number, loanDto: UpdateLoanDto) {
+    return this.repository.update(id, loanDto)
   }
 
   payOff(loanId: number, paymentDto: AddPaymentDto) {

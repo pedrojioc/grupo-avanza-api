@@ -6,6 +6,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm'
 
 import { Customer } from '../../customers/entities/customer.entity'
@@ -14,6 +15,7 @@ import { PaymentPeriod } from './payment-period.entity'
 import { LoanState } from './loan-state.entity'
 import { NumberColumnTransformer } from 'src/shared/transformers/number-column-transformer'
 import { InstallmentType } from '../modules/installments/entities/installment-type.entity'
+import { Refinancing } from '../modules/refinancing/entities/refinancing.entity'
 
 @Entity({ name: 'loans' })
 export class Loan {
@@ -23,10 +25,14 @@ export class Loan {
   @ManyToOne(() => Customer, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'customer_id' })
   customer: Customer
+  @Column({ name: 'customer_id' })
+  customerId: number
 
   @ManyToOne(() => Employee, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'employee_id' })
   employee: Employee
+  @Column({ name: 'employee_id' })
+  employeeId: number
 
   @ManyToOne(() => PaymentPeriod, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'payment_period_id' })
@@ -140,4 +146,13 @@ export class Loan {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date
+
+  @ManyToOne(() => Loan, (loan) => loan.refinancing, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'parent_loan_id' })
+  parentLoan: Loan
+  @Column({ name: 'parent_loan_id', nullable: true })
+  parentLoanId: number
+
+  @OneToMany(() => Refinancing, (refinancing) => refinancing.originLoan)
+  refinancing: Refinancing[]
 }

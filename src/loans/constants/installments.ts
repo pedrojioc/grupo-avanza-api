@@ -3,4 +3,5 @@ export const INSTALLMENT_STATES = {
   PAID: 2,
   AWAITING_PAYMENT: 3,
   OVERDUE: 4,
+  REFINANCED: 5,
 }

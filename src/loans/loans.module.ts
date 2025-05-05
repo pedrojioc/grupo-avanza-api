@@ -30,6 +30,7 @@ import { LoansManagementModule } from './modules/loans-management/loans-manageme
 import { LoanReportsModule } from './modules/loan-reports/loan-reports.module'
 import { DailyInterestModule } from './modules/daily-interest/daily-interest.module'
 import { InstallmentType } from './modules/installments/entities/installment-type.entity'
+import { RefinancingModule } from './modules/refinancing/refinancing.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { InstallmentType } from './modules/installments/entities/installment-typ
     LoansManagementModule,
     LoanReportsModule,
     DailyInterestModule,
+    RefinancingModule,
   ],
   controllers: [LoansController, PaymentPeriodsController, LoanStatesController],
   providers: [

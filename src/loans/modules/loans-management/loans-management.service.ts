@@ -4,7 +4,7 @@ import { EntityManager, MoreThan, Repository } from 'typeorm'
 
 import { Loan } from 'src/loans/entities/loan.entity'
 import { LOAN_STATES, LoanStateValueTypes } from 'src/loans/shared/constants'
-import { UpdateLoanDto } from 'src/loans/dtos/loans.dto'
+import { CreateLoanDto, UpdateLoanDto } from 'src/loans/dtos/loans.dto'
 import { LoanFactoryService } from './loan-factory.service'
 import { Installment } from 'src/loans/entities/installment.entity'
 
@@ -14,6 +14,14 @@ export class LoanManagementService {
     @InjectRepository(Loan) private repository: Repository<Loan>,
     private readonly loanFactoryService: LoanFactoryService,
   ) {}
+
+  async create(loanDto: CreateLoanDto, manager?: EntityManager) {
+    const queryBuilder = manager ? manager : this.repository
+    const loanObject = this.loanFactoryService.generateLoanObject(loanDto)
+    const queryRs = await queryBuilder.insert(Loan, loanObject)
+    const loan = await queryBuilder.findOneBy(Loan, { id: queryRs.raw.insertId })
+    return loan
+  }
 
   findOne(id: number, relations?: string[]) {
     return this.repository.findOne({
@@ -48,8 +56,9 @@ export class LoanManagementService {
     })
   }
 
-  async rawUpdate(id: number, updateLoanDto: UpdateLoanDto) {
-    return await this.repository
+  async rawUpdate(id: number, updateLoanDto: UpdateLoanDto, manager?: EntityManager) {
+    const queryBuilder = manager ? manager : this.repository
+    return await queryBuilder
       .createQueryBuilder()
       .update(Loan)
       .set(updateLoanDto)
