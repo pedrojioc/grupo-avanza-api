@@ -19,17 +19,10 @@ export class Payment {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Installment, { nullable: false, onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'installment_id' })
-  installment: Installment
-
-  @Column({ name: 'installment_id' })
-  installmentId: number
-
-  @ManyToOne(() => Loan, (loan) => loan.payments, { onDelete: 'RESTRICT', nullable: true })
+  @ManyToOne(() => Loan, (loan) => loan.payments, { onDelete: 'RESTRICT', nullable: false })
   @JoinColumn({ name: 'loan_id' })
   loan: Loan
-  @Column({ name: 'loan_id', nullable: true })
+  @Column({ name: 'loan_id', nullable: false })
   loanId: number
 
   @ManyToOne(() => PaymentMethod, { nullable: true, onDelete: 'RESTRICT' })

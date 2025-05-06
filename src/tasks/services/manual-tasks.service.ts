@@ -14,10 +14,12 @@ export class ManualTasksService {
   async setLoanIdOnPayments() {
     const payments = await this.paymentRepo.find()
     for (const payment of payments) {
+      /*
       const installment = await this.installmentService.findOne(payment.installmentId)
       await this.paymentRepo.update(payment.id, {
         loanId: installment.loanId,
       })
+      */
     }
 
     console.log('Payments updated successfully')
