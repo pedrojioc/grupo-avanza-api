@@ -1,16 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Repository } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
-import {
-  addDay,
-  addMonth,
-  diffDays,
-  format,
-  isEqual,
-  monthDays,
-  monthEnd,
-  parse,
-} from '@formkit/tempo'
+import { addDay, addMonth, diffDays, format, isEqual, parse } from '@formkit/tempo'
 import { INTEREST_STATE } from '../../constants/interests'
 import { Interest } from '../../entities/interest.entity'
 import { INSTALLMENT_TYPES, LOAN_STATES, PAYMENT_PERIODS } from 'src/loans/shared/constants'
@@ -281,17 +272,6 @@ export class JobInterestsService {
       const installmentsNumber = await this.installmentService.countInstallments(loan.id)
       await this.loanManagementService.rawUpdate(loan.id, {
         currentInstallmentNumber: installmentsNumber,
-      })
-    }
-  }
-
-  async setPaymentDateForPaidInstallments() {
-    const installments = await this.installmentService.findAll({
-      installmentStateId: INSTALLMENT_STATES.PAID,
-    })
-    for (const installment of installments) {
-      await this.installmentService.update(installment.id, {
-        paymentDate: installment.updatedAt,
       })
     }
   }

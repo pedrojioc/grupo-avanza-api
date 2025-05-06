@@ -44,16 +44,28 @@ export class LoanFactoryService {
     return loanObject
   }
 
+  /**
+   * @param loan
+   * @param interestPaid
+   * @param capital
+   * @param daysLate
+   * @param commission
+   * @param countAsPaid indicates if the payment(installment) should be counted as paid
+   * @returns
+   * @description
+   * This function calculates the new values of a loan after a payment is made.
+   */
   valuesAfterPayment(
     loan: Loan,
-    installment: Installment,
-    interestPayable: number,
+    interestPaid: number,
+    capital: number,
     daysLate: number,
     commission: number,
+    countAsPaid: boolean,
   ) {
-    const newCurrentInterest = loan.currentInterest - interestPayable
+    const newCurrentInterest = loan.currentInterest - interestPaid
     const currentInterest = newCurrentInterest < 0 ? 0 : newCurrentInterest
-    const totalInterestPaid = loan.totalInterestPaid + interestPayable
+    const totalInterestPaid = loan.totalInterestPaid + interestPaid
     const commissionsPaid = loan.commissionsPaid + commission
 
     const data: UpdateLoanDto = {
@@ -63,11 +75,11 @@ export class LoanFactoryService {
       commissionsPaid,
     }
 
-    if (installment.installmentStateId === INSTALLMENT_STATES.PAID) {
+    if (countAsPaid) {
       data.installmentsPaid = Number(loan.installmentsPaid) + 1
     }
-    if (installment.capital > 0) {
-      data.debt = Number(loan.debt) - installment.capital
+    if (capital > 0) {
+      data.debt = Number(loan.debt) - capital
     }
     if (data.debt === 0) data.loanStateId = LOAN_STATES.FINALIZED
     return data

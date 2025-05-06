@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer'
 import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsPositive } from 'class-validator'
 
-export class AddCapitalPaymentDto {
+export class NewCapitalPaymentDto {
   @IsPositive()
   @IsNotEmpty()
   readonly loanId: number

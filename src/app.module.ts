@@ -17,6 +17,7 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module'
 import { NotificationsModule } from './notifications/notifications.module'
 import { TelegramBotModule } from './telegram-bot/telegram-bot.module'
 import { ReportsModule } from './reports/reports.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ReportsModule } from './reports/reports.module';
     TelegramBotModule,
     NotificationsModule,
     ReportsModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

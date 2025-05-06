@@ -1,6 +1,6 @@
 import { parse } from '@formkit/tempo'
 import { Transform, Type } from 'class-transformer'
-import { IsDate, IsDateString, IsNumber, IsOptional, IsPositive } from 'class-validator'
+import { IsDate, IsNumber, IsOptional, IsPositive } from 'class-validator'
 
 export class CreateInstallmentDto {
   @IsPositive()

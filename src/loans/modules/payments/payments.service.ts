@@ -15,7 +15,7 @@ import { DataSource, EntityManager } from 'typeorm'
 import { EmployeesService } from 'src/employees/services/employees.service'
 import { Payment } from 'src/loans/entities/payments.entity'
 import { CreatePaymentDto } from './dtos/create-payment.dto'
-import { AddCapitalPaymentDto } from './dtos/add-capital-payment.dto'
+import { NewCapitalPaymentDto } from './dtos/new-capital-payment.dto'
 import { FilterPaymentsDto } from './dtos/filter-payments.dto'
 import { MarkPaymentAsReceived } from './dtos/bulk-received.dto'
 
@@ -78,6 +78,8 @@ export class PaymentsService {
 
   async transactionalCreate(manager: EntityManager, createPaymentDto: CreatePaymentDto) {
     const rs = await manager.insert(Payment, createPaymentDto)
+    // Si es un pago extra a capital, no se relaciona con cuotas
+    if (createPaymentDto.installmentIds.length === 0) return rs
     await manager
       .createQueryBuilder()
       .relation(Payment, 'installments')
@@ -96,13 +98,14 @@ export class PaymentsService {
       await this.validatePaymentToCapital(loan.id, paymentDto.installmentId)
     }
     */
-    if (paymentDto.capital === 0 && !paymentDto.installmentId) {
+    if (paymentDto.capital === 0 && !paymentDto.installmentIds) {
       throw new UnprocessableEntityException('Los pagos deben ser mayor a 0')
     }
+
     return await this.processInstallmentPayment(paymentDto, loan)
   }
 
-  async capitalPayment(paymentDto: AddCapitalPaymentDto) {
+  async capitalPayment(paymentDto: NewCapitalPaymentDto) {
     const loan = await this.loanManagementService.findOne(paymentDto.loanId, ['employee'])
     return await this.processCapitalPayment(paymentDto, loan)
   }
@@ -116,9 +119,10 @@ export class PaymentsService {
     try {
       const employeeId = loan.employee.id
 
-      let installment = await this.installmentService.findOne(paymentDto.installmentId)
+      // Temporalmente no está habilitado el de multiples cuotas
+      let installment = await this.installmentService.findOne(paymentDto.installmentIds[0])
       const installmentDataUpd = this.installmentFactoryService.update(installment, paymentDto)
-      const interestPayable = installmentDataUpd.interestPaid - installment.interestPaid
+      const interestToPay = installmentDataUpd.interestPaid - installment.interestPaid
 
       installment = await this.installmentService.makePayment(
         manager,
@@ -143,20 +147,21 @@ export class PaymentsService {
 
       // ? Calcular los días de atraso
       const daysLate = await this.installmentService.calculateDaysLate(loan.id, manager)
+
       // ? Actualizar los datos del préstamo
       await this.loanManagementService.updateLoanAfterPayment(
         manager,
         loan,
-        installment,
-        interestPayable,
+        interestToPay,
+        paymentDto.capital,
         daysLate,
         commissionAmount,
+        isFullyPaid,
       )
 
       // ? Crear el pago
       await this.transactionalCreate(manager, {
-        installmentId: installment.id,
-        installmentIds: [installment.id],
+        loanId: loan.id,
         paymentMethodId: paymentDto.paymentMethodId,
         capital: installment.capital,
         interest: installment.interestPaid,
@@ -172,7 +177,7 @@ export class PaymentsService {
 
   @Transactional()
   async processCapitalPayment(
-    paymentDto: AddCapitalPaymentDto,
+    paymentDto: NewCapitalPaymentDto,
     loan: Loan,
     manager?: EntityManager,
   ) {
@@ -182,34 +187,32 @@ export class PaymentsService {
     */
 
     const { capital } = paymentDto
-    const today = new Date()
-
-    const installmentDto: CreateInstallmentDto = {
-      loanId: loan.id,
-      installmentStateId: INSTALLMENT_STATES.PAID,
-      debt: 0,
-      startsOn: today,
-      paymentDeadline: today,
-      days: 0,
-      capital,
-      interest: 0,
-      interestPaid: 0,
-      total: capital,
-    }
-    const installment = await this.installmentService.transactionalCreate(manager, installmentDto)
-    await this.loanManagementService.updateLoanAfterPayment(manager, loan, installment, 0, 0, 0)
 
     // ? Crear el pago
-    await this.transactionalCreate(manager, {
-      installmentId: installment.id,
-      installmentIds: [installment.id],
+    const paymentRs = await this.transactionalCreate(manager, {
+      loanId: loan.id,
       paymentMethodId: paymentDto.paymentMethodId,
       capital,
       interest: 0,
       total: capital,
-      date: paymentDto.paymentDate || new Date(),
+      installmentIds: [],
+      date: paymentDto.paymentDate,
     })
-    return installment
+    const interestPaid = 0
+    const daysLate = 0
+    const commission = 0
+    const countAsPaid = false
+    await this.loanManagementService.updateLoanAfterPayment(
+      manager,
+      loan,
+      interestPaid,
+      capital,
+      daysLate,
+      commission,
+      countAsPaid,
+    )
+
+    return paymentRs
   }
 
   async payOff(loanId: number, addPaymentDto: PayOffDto) {

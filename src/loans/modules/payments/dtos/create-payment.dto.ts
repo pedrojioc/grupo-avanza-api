@@ -1,9 +1,9 @@
-import { IsArray, IsDate, IsNotEmpty, IsNumber, IsPositive } from 'class-validator'
+import { IsArray, IsDate, IsNotEmpty, IsNumber, IsOptional, IsPositive } from 'class-validator'
 
 export class CreatePaymentDto {
   @IsPositive()
   @IsNotEmpty()
-  readonly installmentId: number
+  readonly loanId: number
 
   @IsPositive()
   @IsNotEmpty()
@@ -19,7 +19,8 @@ export class CreatePaymentDto {
   readonly total: number
 
   @IsArray()
-  installmentIds: number[]
+  @IsOptional()
+  installmentIds?: number[]
 
   @IsDate()
   @IsNotEmpty()

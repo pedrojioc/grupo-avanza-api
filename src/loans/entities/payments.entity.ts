@@ -12,6 +12,7 @@ import {
 import { NumberColumnTransformer } from 'src/shared/transformers/number-column-transformer'
 import { PaymentMethod } from 'src/payment-methods/entities/payment-method.entity'
 import { Installment } from './installment.entity'
+import { Loan } from './loan.entity'
 
 @Entity({ name: 'payments' })
 export class Payment {
@@ -24,6 +25,12 @@ export class Payment {
 
   @Column({ name: 'installment_id' })
   installmentId: number
+
+  @ManyToOne(() => Loan, (loan) => loan.payments, { onDelete: 'RESTRICT', nullable: true })
+  @JoinColumn({ name: 'loan_id' })
+  loan: Loan
+  @Column({ name: 'loan_id', nullable: true })
+  loanId: number
 
   @ManyToOne(() => PaymentMethod, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'payment_method_id' })

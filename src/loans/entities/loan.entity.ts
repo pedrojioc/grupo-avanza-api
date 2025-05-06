@@ -16,6 +16,7 @@ import { LoanState } from './loan-state.entity'
 import { NumberColumnTransformer } from 'src/shared/transformers/number-column-transformer'
 import { InstallmentType } from '../modules/installments/entities/installment-type.entity'
 import { Refinancing } from '../modules/refinancing/entities/refinancing.entity'
+import { Payment } from './payments.entity'
 
 @Entity({ name: 'loans' })
 export class Loan {
@@ -152,6 +153,9 @@ export class Loan {
   parentLoan: Loan
   @Column({ name: 'parent_loan_id', nullable: true })
   parentLoanId: number
+
+  @OneToMany(() => Payment, (payment) => payment.loan)
+  payments: Payment[]
 
   @OneToMany(() => Refinancing, (refinancing) => refinancing.originLoan)
   refinancing: Refinancing[]

@@ -18,7 +18,7 @@ export class AddPaymentDto {
   customInterest?: number // ? Monto a pagar por intereses, si es un monto diferente al del sistema
 
   @IsPositive()
-  readonly installmentId: number
+  readonly installmentIds: number
 
   @IsDateString({ strict: false })
   paymentDate: Date

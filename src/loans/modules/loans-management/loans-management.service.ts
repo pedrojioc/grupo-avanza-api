@@ -78,17 +78,19 @@ export class LoanManagementService {
   async updateLoanAfterPayment(
     manager: EntityManager,
     loan: Loan,
-    installment: Installment,
-    interestPayable: number,
+    interestPaid: number,
+    capital: number,
     daysLate: number,
     commission: number,
+    countAsPaid: boolean,
   ) {
     const loanData = this.loanFactoryService.valuesAfterPayment(
       loan,
-      installment,
-      interestPayable,
+      interestPaid,
+      capital,
       daysLate,
       commission,
+      countAsPaid,
     )
 
     return await this.transactionalUpdate(manager, loan.id, loanData)
